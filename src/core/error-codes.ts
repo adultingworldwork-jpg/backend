@@ -1,0 +1,21 @@
+export const ErrorCodes = {
+  // Auth
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  INVALID_TOKEN: 'INVALID_TOKEN',
+  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
+  FORBIDDEN: 'FORBIDDEN',
+
+  // Validation
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+
+  // User
+  USER_NOT_FOUND: 'USER_NOT_FOUND',
+  EMAIL_EXISTS: 'EMAIL_EXISTS',
+
+  // System
+  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
+  NOT_READY: 'NOT_READY',
+  NOT_IMPLEMENTED: 'NOT_IMPLEMENTED',
+} as const
+
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes]

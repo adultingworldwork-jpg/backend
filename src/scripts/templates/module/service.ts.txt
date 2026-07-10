@@ -1,0 +1,20 @@
+export class {{name}}Service {
+  constructor(private db: any) {}
+
+  async findAll() {
+    const client = this.db.getClient()
+
+    // Prisma fallback
+    if (client.{{camelName}}?.findMany) {
+      return client.{{camelName}}.findMany()
+    }
+
+    // Mongo fallback
+    if (client.model) {
+      const Model = client.model('{{pascalName}}')
+      return Model.find()
+    }
+
+    return []
+  }
+}
