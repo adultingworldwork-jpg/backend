@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.orderParticipants = exports.ChatService = void 0;
-const app_error_1 = require("@/utils/app-error");
-const upload_repository_1 = require("@/modules/upload/upload.repository");
-const user_repository_1 = require("@/modules/user/user.repository");
+const app_error_1 = require("../../utils/app-error");
+const upload_repository_1 = require("../../modules/upload/upload.repository");
+const user_repository_1 = require("../../modules/user/user.repository");
 const chat_model_1 = require("./chat.model");
 Object.defineProperty(exports, "orderParticipants", { enumerable: true, get: function () { return chat_model_1.orderParticipants; } });
 const chat_repository_1 = require("./chat.repository");

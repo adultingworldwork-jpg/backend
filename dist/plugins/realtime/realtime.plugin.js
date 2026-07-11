@@ -7,7 +7,7 @@ const fastify_plugin_1 = __importDefault(require("fastify-plugin"));
 const socket_io_1 = require("socket.io");
 const realtime_service_1 = require("./realtime.service");
 const memory_presence_1 = require("./memory-presence");
-const config_1 = require("@/config");
+const config_1 = require("../../config");
 /**
  * Existing Socket.IO framework plugin — extended for Adulting101 chat.
  * - JWT access tokens (id claim)

@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.lettersRoutes = lettersRoutes;
 const letters_controller_1 = require("./letters.controller");
-const auth_guard_1 = require("@/core/auth.guard");
-const validation_middleware_1 = require("@/core/validation.middleware");
+const auth_guard_1 = require("../../core/auth.guard");
+const validation_middleware_1 = require("../../core/validation.middleware");
 const letters_schema_1 = require("./letters.schema");
 async function lettersRoutes(app) {
     const c = new letters_controller_1.LettersController();

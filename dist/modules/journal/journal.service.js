@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.JournalService = void 0;
-const app_error_1 = require("@/utils/app-error");
-const slug_1 = require("@/utils/slug");
-const upload_repository_1 = require("@/modules/upload/upload.repository");
+const app_error_1 = require("../../utils/app-error");
+const slug_1 = require("../../utils/slug");
+const upload_repository_1 = require("../../modules/upload/upload.repository");
 const journal_repository_1 = require("./journal.repository");
 /**
  * Private journal service.

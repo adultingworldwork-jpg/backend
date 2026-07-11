@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserRepository = void 0;
-const rbac_model_1 = require("@/models/rbac.model");
+const rbac_model_1 = require("../../models/rbac.model");
 class UserRepository {
     async findAll() {
         return rbac_model_1.User.find()

@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.chatRoutes = chatRoutes;
 const chat_controller_1 = require("./chat.controller");
-const auth_guard_1 = require("@/core/auth.guard");
-const validation_middleware_1 = require("@/core/validation.middleware");
+const auth_guard_1 = require("../../core/auth.guard");
+const validation_middleware_1 = require("../../core/validation.middleware");
 const chat_schema_1 = require("./chat.schema");
 async function chatRoutes(app) {
     const c = new chat_controller_1.ChatController();

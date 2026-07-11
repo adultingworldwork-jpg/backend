@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TemplateService = void 0;
-const app_error_1 = require("@/utils/app-error");
+const app_error_1 = require("../../utils/app-error");
 class TemplateService {
     constructor(ctx) {
         this.ctx = ctx;

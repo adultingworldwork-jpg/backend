@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateUserRoleSchema = exports.updateUserStatusSchema = exports.commentIdParamSchema = exports.contentIdParamSchema = exports.userIdParamSchema = exports.paginationQuerySchema = exports.ADMIN_ROLES = void 0;
 const zod_1 = require("zod");
-const rbac_model_1 = require("@/models/rbac.model");
+const rbac_model_1 = require("../../models/rbac.model");
 exports.ADMIN_ROLES = ["USER", "ADMIN"];
 exports.paginationQuerySchema = zod_1.z.object({
     page: zod_1.z.coerce.number().int().min(1).optional().default(1),

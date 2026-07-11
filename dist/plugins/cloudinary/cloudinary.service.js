@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CloudinaryStorageService = void 0;
 const cloudinary_1 = require("cloudinary");
 const stream_1 = require("stream");
-const app_error_1 = require("@/utils/app-error");
+const app_error_1 = require("../../utils/app-error");
 function resourceTypeForMime(mimeType) {
     if (mimeType.startsWith("image/"))
         return "image";

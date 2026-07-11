@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UploadService = void 0;
-const app_error_1 = require("@/utils/app-error");
+const app_error_1 = require("../../utils/app-error");
 const upload_repository_1 = require("./upload.repository");
 const upload_schema_1 = require("./upload.schema");
 class UploadService {

@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
-const config_1 = require("@/config");
+const config_1 = require("./config");
 const app_1 = require("./app");
 async function start() {
     const app = await (0, app_1.buildApp)();

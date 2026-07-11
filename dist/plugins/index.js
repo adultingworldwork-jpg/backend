@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerPlugins = registerPlugins;
-const config_1 = require("@/config");
+const config_1 = require("../config");
 const cors_plugin_1 = __importDefault(require("./cors.plugin"));
 const multipart_plugin_1 = __importDefault(require("./multipart.plugin"));
 const response_plugin_1 = __importDefault(require("./response.plugin"));

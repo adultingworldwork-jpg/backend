@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UploadController = void 0;
 const upload_service_1 = require("./upload.service");
-const app_error_1 = require("@/utils/app-error");
+const app_error_1 = require("../../utils/app-error");
 class UploadController {
     async upload(request, reply) {
         const file = await request.file();

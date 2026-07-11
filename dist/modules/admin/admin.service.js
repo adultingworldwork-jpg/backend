@@ -1,15 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminService = void 0;
-const app_error_1 = require("@/utils/app-error");
-const user_repository_1 = require("@/modules/user/user.repository");
-const profile_repository_1 = require("@/modules/profile/profile.repository");
-const blog_repository_1 = require("@/modules/blog/blog.repository");
-const community_repository_1 = require("@/modules/community/community.repository");
-const journal_repository_1 = require("@/modules/journal/journal.repository");
-const letters_repository_1 = require("@/modules/letters/letters.repository");
-const resources_repository_1 = require("@/modules/resources/resources.repository");
-const chat_model_1 = require("@/modules/chat/chat.model");
+const app_error_1 = require("../../utils/app-error");
+const user_repository_1 = require("../../modules/user/user.repository");
+const profile_repository_1 = require("../../modules/profile/profile.repository");
+const blog_repository_1 = require("../../modules/blog/blog.repository");
+const community_repository_1 = require("../../modules/community/community.repository");
+const journal_repository_1 = require("../../modules/journal/journal.repository");
+const letters_repository_1 = require("../../modules/letters/letters.repository");
+const resources_repository_1 = require("../../modules/resources/resources.repository");
+const chat_model_1 = require("../../modules/chat/chat.model");
 /**
  * Admin orchestration layer — reuses repositories; does not reimplement domain rules.
  * Privacy: never exposes journals, private letters, or chat message content.

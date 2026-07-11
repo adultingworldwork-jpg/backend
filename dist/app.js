@@ -8,8 +8,8 @@ const fastify_1 = __importDefault(require("fastify"));
 const register_plugins_1 = require("./core/register-plugins");
 const error_handler_1 = require("./core/error-handler");
 // import { registerModules } from "./core/register-modules"; // manual register
-const module_loader_1 = require("@/core/module-loader"); //auto register
-const logger_1 = require("@/config/logger");
+const module_loader_1 = require("./core/module-loader"); //auto register
+const logger_1 = require("./config/logger");
 async function buildApp() {
     const app = (0, fastify_1.default)({
         logger: logger_1.loggerConfig,

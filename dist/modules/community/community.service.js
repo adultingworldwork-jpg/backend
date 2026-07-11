@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CommunityService = void 0;
-const app_error_1 = require("@/utils/app-error");
-const upload_repository_1 = require("@/modules/upload/upload.repository");
+const app_error_1 = require("../../utils/app-error");
+const upload_repository_1 = require("../../modules/upload/upload.repository");
 const community_repository_1 = require("./community.repository");
 class CommunityService {
     constructor(deps) {

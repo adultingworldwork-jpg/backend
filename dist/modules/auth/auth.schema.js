@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.logoutSchema = exports.refreshSchema = exports.recoverSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
-const username_1 = require("@/utils/username");
+const username_1 = require("../../utils/username");
 exports.registerSchema = zod_1.z.object({
     username: zod_1.z
         .string()

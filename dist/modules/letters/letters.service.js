@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LettersService = void 0;
-const app_error_1 = require("@/utils/app-error");
-const upload_repository_1 = require("@/modules/upload/upload.repository");
-const user_repository_1 = require("@/modules/user/user.repository");
+const app_error_1 = require("../../utils/app-error");
+const upload_repository_1 = require("../../modules/upload/upload.repository");
+const user_repository_1 = require("../../modules/user/user.repository");
 const letters_repository_1 = require("./letters.repository");
 class LettersService {
     constructor(deps) {

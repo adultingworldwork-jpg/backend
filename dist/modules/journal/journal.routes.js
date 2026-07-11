@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.journalRoutes = journalRoutes;
 const journal_controller_1 = require("./journal.controller");
-const auth_guard_1 = require("@/core/auth.guard");
-const validation_middleware_1 = require("@/core/validation.middleware");
+const auth_guard_1 = require("../../core/auth.guard");
+const validation_middleware_1 = require("../../core/validation.middleware");
 const journal_schema_1 = require("./journal.schema");
 /**
  * All journal routes require authentication.

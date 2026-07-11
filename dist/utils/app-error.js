@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppError = void 0;
-const error_registry_1 = require("@/core/error-registry");
+const error_registry_1 = require("../core/error-registry");
 class AppError extends Error {
     constructor(message, statusCode, code) {
         super(message);

@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setupErrorHandler = setupErrorHandler;
 const zod_1 = require("zod");
-const app_error_1 = require("@/utils/app-error");
+const app_error_1 = require("../utils/app-error");
 function isZodError(error) {
     return (error instanceof zod_1.ZodError ||
         (typeof error === "object" &&

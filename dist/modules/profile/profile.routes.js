@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.profileRoutes = profileRoutes;
 const profile_controller_1 = require("./profile.controller");
-const auth_guard_1 = require("@/core/auth.guard");
-const validation_middleware_1 = require("@/core/validation.middleware");
+const auth_guard_1 = require("../../core/auth.guard");
+const validation_middleware_1 = require("../../core/validation.middleware");
 const profile_schema_1 = require("./profile.schema");
 async function profileRoutes(app) {
     const controller = new profile_controller_1.ProfileController();

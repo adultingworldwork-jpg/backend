@@ -6,10 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const mongoose_1 = __importDefault(require("mongoose"));
-const user_repository_1 = require("@/modules/user/user.repository");
-const app_error_1 = require("@/utils/app-error");
-const username_1 = require("@/utils/username");
-const crypto_hash_1 = require("@/utils/crypto-hash");
+const user_repository_1 = require("../../modules/user/user.repository");
+const app_error_1 = require("../../utils/app-error");
+const username_1 = require("../../utils/username");
+const crypto_hash_1 = require("../../utils/crypto-hash");
 const auth_constants_1 = require("./auth.constants");
 class AuthService {
     constructor(deps) {

@@ -36,9 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerModules = registerModules;
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
-const case_1 = require("@/utils/string/case");
-const config_1 = require("@/config");
-const error_handler_1 = require("@/core/error-handler");
+const case_1 = require("../utils/string/case");
+const config_1 = require("../config");
+const error_handler_1 = require("../core/error-handler");
 async function registerModules(app) {
     const modulesPath = path.resolve(__dirname, "..", "modules");
     const moduleDirs = fs

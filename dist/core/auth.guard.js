@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authGuard = authGuard;
 exports.optionalAuthGuard = optionalAuthGuard;
 exports.adminGuard = adminGuard;
-const app_error_1 = require("@/utils/app-error");
+const app_error_1 = require("../utils/app-error");
 async function authGuard(request, _reply) {
     const authHeader = request.headers.authorization;
     if (!authHeader) {

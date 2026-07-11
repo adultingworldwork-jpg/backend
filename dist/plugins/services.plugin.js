@@ -4,15 +4,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const fastify_plugin_1 = __importDefault(require("fastify-plugin"));
-const auth_service_1 = require("@/modules/auth/auth.service");
-const profile_service_1 = require("@/modules/profile/profile.service");
-const blog_service_1 = require("@/modules/blog/blog.service");
-const community_service_1 = require("@/modules/community/community.service");
-const journal_service_1 = require("@/modules/journal/journal.service");
-const letters_service_1 = require("@/modules/letters/letters.service");
-const resources_service_1 = require("@/modules/resources/resources.service");
-const chat_service_1 = require("@/modules/chat/chat.service");
-const admin_service_1 = require("@/modules/admin/admin.service");
+const auth_service_1 = require("../modules/auth/auth.service");
+const profile_service_1 = require("../modules/profile/profile.service");
+const blog_service_1 = require("../modules/blog/blog.service");
+const community_service_1 = require("../modules/community/community.service");
+const journal_service_1 = require("../modules/journal/journal.service");
+const letters_service_1 = require("../modules/letters/letters.service");
+const resources_service_1 = require("../modules/resources/resources.service");
+const chat_service_1 = require("../modules/chat/chat.service");
+const admin_service_1 = require("../modules/admin/admin.service");
 exports.default = (0, fastify_plugin_1.default)(async (app) => {
     app.decorateRequest("services", null);
     app.addHook("onRequest", async (request) => {

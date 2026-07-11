@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProfileService = void 0;
-const app_error_1 = require("@/utils/app-error");
-const user_repository_1 = require("@/modules/user/user.repository");
-const upload_repository_1 = require("@/modules/upload/upload.repository");
-const upload_service_1 = require("@/modules/upload/upload.service");
-const username_1 = require("@/utils/username");
+const app_error_1 = require("../../utils/app-error");
+const user_repository_1 = require("../../modules/user/user.repository");
+const upload_repository_1 = require("../../modules/upload/upload.repository");
+const upload_service_1 = require("../../modules/upload/upload.service");
+const username_1 = require("../../utils/username");
 const profile_repository_1 = require("./profile.repository");
 class ProfileService {
     constructor(deps) {

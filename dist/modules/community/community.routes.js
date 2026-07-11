@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.communityRoutes = communityRoutes;
 const community_controller_1 = require("./community.controller");
-const auth_guard_1 = require("@/core/auth.guard");
-const validation_middleware_1 = require("@/core/validation.middleware");
+const auth_guard_1 = require("../../core/auth.guard");
+const validation_middleware_1 = require("../../core/validation.middleware");
 const community_schema_1 = require("./community.schema");
 async function communityRoutes(app) {
     const c = new community_controller_1.CommunityController();

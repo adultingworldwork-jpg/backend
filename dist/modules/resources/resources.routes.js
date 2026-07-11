@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resourcesRoutes = resourcesRoutes;
 const resources_controller_1 = require("./resources.controller");
-const auth_guard_1 = require("@/core/auth.guard");
-const validation_middleware_1 = require("@/core/validation.middleware");
+const auth_guard_1 = require("../../core/auth.guard");
+const validation_middleware_1 = require("../../core/validation.middleware");
 const resources_schema_1 = require("./resources.schema");
 async function resourcesRoutes(app) {
     const c = new resources_controller_1.ResourcesController();

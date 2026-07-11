@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProfileController = void 0;
 const profile_service_1 = require("./profile.service");
 const profile_schema_1 = require("./profile.schema");
-const app_error_1 = require("@/utils/app-error");
+const app_error_1 = require("../../utils/app-error");
 class ProfileController {
     service(request) {
         return new profile_service_1.ProfileService({
