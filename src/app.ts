@@ -5,8 +5,6 @@ import { setupErrorHandler } from "./core/error-handler";
 import { registerModules } from "@/core/module-loader"; //auto register
 import { loggerConfig } from "@/config/logger";
 import { loadEventListeners } from "./events/event.loader";
-import fp from "fastify-plugin";
-import cors from "@fastify/cors";
 
 export async function buildApp() {
   const app = Fastify({
@@ -20,16 +18,6 @@ export async function buildApp() {
 
   await setupPlugins(app);
   await registerModules(app);
-
-  await app.register(cors, {
-    origin: [
-      "http://localhost:3000",
-      "https://audulting101.vercel.app/", 
-    ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  });
 
   /**
    * this is an experimental feature
