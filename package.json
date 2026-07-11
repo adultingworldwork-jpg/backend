@@ -6,6 +6,7 @@
     "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/server.js",
     "test": "jest",
     "make:module": "ts-node -r tsconfig-paths/register src/scripts/make-module.ts",
     "plugin:add": "tsx src/scripts/add-plugin.ts"
