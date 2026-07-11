@@ -20,8 +20,10 @@ export const envSchema = z.object({
   REDIS_PASSWORD: z.string().optional(),
   PLUGINS: z.string().default(""),
 
-  /** Comma-separated browser origins allowed by CORS (e.g. http://localhost:3001) */
-  CORS_ORIGIN: z.string().default("http://localhost:3001"),
+  /** Comma-separated browser origins allowed by CORS (no trailing slash) */
+  CORS_ORIGIN: z
+    .string()
+    .default("http://localhost:3001,https://audulting101.vercel.app"),
 
   /** Cloudinary (required when PLUGINS includes cloudinary) */
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
