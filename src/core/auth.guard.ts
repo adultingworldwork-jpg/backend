@@ -1,55 +1,91 @@
-import { FastifyRequest, FastifyReply } from 'fastify'
-import { AppError } from '@/utils/app-error'
+import { FastifyRequest, FastifyReply } from "fastify";
+import { AppError } from "@/utils/app-error";
 
 type JwtPayload = {
-  id: string
-  role?: string
-  permissions?: string[]
-  type?: string
-}
+  id: string;
+  username?: string;
+  role?: string;
+  permissions?: string[];
+  type?: string;
+  userType?: string;
+};
 
 export async function authGuard(
   request: FastifyRequest,
-  reply: FastifyReply
+  _reply: FastifyReply,
 ) {
-  const authHeader = request.headers.authorization
+  const authHeader = request.headers.authorization;
 
-  // ✅ Validate header presence
   if (!authHeader) {
-    request.log.warn('Missing Authorization header')
-    throw new AppError('Unauthorized', 401, 'UNAUTHORIZED')
+    request.log.warn("Missing Authorization header");
+    throw AppError.fromCode("UNAUTHORIZED");
   }
 
-  // ✅ Validate format: Bearer <token>
-  const [scheme, token] = authHeader.split(' ')
+  const [scheme, token] = authHeader.split(" ");
 
-  if (scheme !== 'Bearer' || !token) {
-    request.log.warn({ authHeader }, 'Invalid Authorization format')
-    throw new AppError('Invalid token format', 401, 'INVALID_TOKEN')
+  if (scheme !== "Bearer" || !token) {
+    request.log.warn({ authHeader }, "Invalid Authorization format");
+    throw AppError.fromCode("INVALID_TOKEN", "Invalid token format");
   }
 
   try {
-    const decoded = request.server.jwt.verifyAccess(token) as JwtPayload
+    const decoded = request.server.jwt.verifyAccess(token) as JwtPayload;
 
-    // ✅ Attach user to request context
     request.ctx.user = {
       id: decoded.id,
+      username: decoded.username,
       role: decoded.role,
       permissions: decoded.permissions,
-      type: (decoded as any).userType || decoded.type, // Support both for safety
-    }
+      type: decoded.userType || decoded.type,
+    };
 
-    // ✅ Enrich logger with user + request context
     request.log = request.log.child({
       userId: decoded.id,
+      username: decoded.username,
       role: decoded.role,
-      type: decoded.type,
       requestId: request.ctx.requestId,
-    })
+    });
 
-    request.log.debug('User authenticated')
+    request.log.debug("User authenticated");
   } catch (error) {
-    request.log.warn({ error }, 'Token verification failed')
-    throw new AppError('Invalid token', 401, 'INVALID_TOKEN')
+    request.log.warn({ error }, "Token verification failed");
+    throw AppError.fromCode("INVALID_TOKEN");
+  }
+}
+
+/**
+ * Attach user when a Bearer token is present; otherwise continue anonymously.
+ * Used for visibility-gated public profile reads.
+ */
+export async function optionalAuthGuard(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const authHeader = request.headers.authorization;
+  if (!authHeader) return;
+  await authGuard(request, reply);
+}
+
+/**
+ * Require authenticated ADMIN role (or admin.access permission).
+ * Must run after authGuard, or include auth itself.
+ */
+export async function adminGuard(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  await authGuard(request, reply);
+
+  const role = (request.ctx.user?.role || "").toLowerCase();
+  const permissions = request.ctx.user?.permissions || [];
+  const isAdmin =
+    role === "admin" || permissions.includes("admin.access");
+
+  if (!isAdmin) {
+    request.log.warn(
+      { userId: request.ctx.user?.id, role },
+      "Admin access denied",
+    );
+    throw AppError.fromCode("ADMIN_REQUIRED");
   }
 }

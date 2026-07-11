@@ -9,18 +9,23 @@ import { loadEventListeners } from "./events/event.loader";
 export async function buildApp() {
   const app = Fastify({
     logger: loggerConfig,
+    // Atlas / cold connections can exceed the default 10s plugin boot window
+    pluginTimeout: 60_000,
   });
+
+  // Global error envelope — register early so all routes share it
+  setupErrorHandler(app);
+
   await setupPlugins(app);
   await registerModules(app);
 
   /**
-   * this is an experminetal feture
+   * this is an experimental feature
    * enabling this will allow you to use socket io in your application
    * but may behave unexpectedly
    */
 
   // await loadEventListeners(app.event);
 
-  setupErrorHandler(app);
   return app;
 }

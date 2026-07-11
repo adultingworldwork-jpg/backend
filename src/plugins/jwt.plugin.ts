@@ -1,36 +1,59 @@
 import fp from "fastify-plugin";
-import jwt from "jsonwebtoken";
+import jwt, { SignOptions } from "jsonwebtoken";
 import { FastifyInstance } from "fastify";
 import { config } from "@/config";
+import { generateTokenId } from "@/utils/crypto-hash";
 
-type TokenType = "access" | "refresh";
-type UserType = "admin" | "user" | "driver";
+export type TokenType = "access" | "refresh";
+export type UserType = "admin" | "user" | "driver";
+
+export type JwtSignPayload = {
+  id: string;
+  username?: string;
+  role?: string | null;
+  permissions?: string[];
+  type?: string;
+};
 
 function getSecret(userType: UserType) {
   switch (userType) {
     case "admin":
-      return "secret_admin";
+      // Prefer env secret for all types in production; admin-specific secret can be added later
+      return config.jwt.secret;
     case "user":
-       return config.jwt.secret || "secret_user";
     default:
-      return config.jwt.secret || "secret_user";
+      return config.jwt.secret;
   }
 }
 
-function getExpiry(userType: UserType, tokenType: TokenType) {
+function getExpiry(tokenType: TokenType): string {
   if (tokenType === "access") return "15m";
-  if (tokenType === "refresh") return "30d";
+  return "30d";
 }
 
 function signToken(
-  payload: any,
+  payload: JwtSignPayload,
   userType: UserType = "user",
   tokenType: TokenType,
 ) {
   const secret = getSecret(userType);
-  const expiresIn = getExpiry(userType, tokenType);
+  const expiresIn = getExpiry(tokenType);
+  const jti = generateTokenId();
 
-  return jwt.sign({ ...payload, userType, tokenType }, secret, { expiresIn });
+  const options: SignOptions = {
+    expiresIn: expiresIn as SignOptions["expiresIn"],
+  };
+
+  return jwt.sign(
+    {
+      ...payload,
+      userType,
+      tokenType,
+      jti,
+    },
+    secret,
+    options,
+  );
 }
 
 function verifyToken(token: string) {
@@ -40,7 +63,7 @@ function verifyToken(token: string) {
     throw new Error("Invalid token");
   }
 
-  const secret = getSecret(decoded.userType);
+  const secret = getSecret(decoded.userType as UserType);
   return jwt.verify(token, secret);
 }
 
@@ -64,12 +87,16 @@ function verifyRefreshToken(token: string) {
   return decoded;
 }
 
+/** Legacy helper — prefer AuthService.refresh with rotation */
 function refreshAccessToken(refreshToken: string) {
-  const decoded = verifyRefreshToken(refreshToken);
+  const decoded = verifyRefreshToken(refreshToken) as JwtSignPayload & {
+    userType: UserType;
+  };
 
   const accessToken = signToken(
     {
       id: decoded.id,
+      username: decoded.username,
       role: decoded.role,
       permissions: decoded.permissions,
       type: decoded.type,
@@ -91,4 +118,6 @@ async function jwtPlugin(app: FastifyInstance) {
   });
 }
 
-export default fp(jwtPlugin);
+export default fp(jwtPlugin, {
+  name: "jwt",
+});

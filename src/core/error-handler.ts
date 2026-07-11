@@ -2,17 +2,42 @@ import { FastifyInstance, FastifyError } from "fastify";
 import { ZodError } from "zod";
 import { AppError } from "@/utils/app-error";
 
-// Type guard
+function isZodError(error: unknown): error is ZodError {
+  return (
+    error instanceof ZodError ||
+    (typeof error === "object" &&
+      error !== null &&
+      (error as { name?: string }).name === "ZodError" &&
+      Array.isArray((error as { issues?: unknown }).issues))
+  );
+}
+
+/** Duck-type AppError (instanceof can fail under ts-node path aliases / multi-load). */
+function isAppError(error: unknown): error is AppError {
+  if (error instanceof AppError) return true;
+  if (typeof error !== "object" || error === null) return false;
+  const e = error as Record<string, unknown>;
+  return (
+    typeof e.statusCode === "number" &&
+    typeof e.code === "string" &&
+    typeof e.type === "string" &&
+    typeof e.message === "string" &&
+    e.name !== "FastifyError"
+  );
+}
+
 function isFastifyError(error: unknown): error is FastifyError {
+  if (isAppError(error)) return false;
   return (
     typeof error === "object" &&
     error !== null &&
     "statusCode" in error &&
-    typeof (error as any).statusCode === "number"
+    typeof (error as { statusCode?: unknown }).statusCode === "number" &&
+    ((error as { name?: string }).name === "FastifyError" ||
+      (error as { code?: string }).code === "FST_ERR_VALIDATION")
   );
 }
 
-// Helper
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   return "Something went wrong";
@@ -20,7 +45,8 @@ function getErrorMessage(error: unknown): string {
 
 export function setupErrorHandler(app: FastifyInstance) {
   app.setErrorHandler((error: unknown, request, reply) => {
-    if (error instanceof ZodError) {
+    if (isZodError(error)) {
+      const issues = (error as ZodError).issues ?? [];
       request.log.warn(error);
 
       return reply.status(400).send({
@@ -28,7 +54,7 @@ export function setupErrorHandler(app: FastifyInstance) {
         data: null,
         error: {
           type: "VALIDATION_ERROR",
-          details: error.issues.map((e) => ({
+          details: issues.map((e) => ({
             field: e.path.join("."),
             message: e.message,
           })),
@@ -36,14 +62,14 @@ export function setupErrorHandler(app: FastifyInstance) {
       });
     }
 
-    if (error instanceof AppError) {
+    if (isAppError(error)) {
       request.log.warn(error);
 
       return reply.status(error.statusCode).send({
         success: false,
         data: null,
         error: {
-          type: error.type,
+          type: error.type || error.code,
           message: error.message,
         },
       });

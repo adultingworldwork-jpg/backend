@@ -3,6 +3,7 @@ import * as path from "path";
 import { FastifyInstance } from "fastify";
 import { toKebabCase } from "@/utils/string/case";
 import { config } from "@/config";
+import { setupErrorHandler } from "@/core/error-handler";
 
 export async function registerModules(app: FastifyInstance) {
   const modulesPath = path.resolve(__dirname, "..", "modules");
@@ -29,7 +30,16 @@ export async function registerModules(app: FastifyInstance) {
         ? ""
         : `${basePrefix}/${toKebabCase(dir)}`;
 
-      await app.register(moduleFunction, { prefix });
+      // Register inside a child context that shares the standard error envelope.
+      // Fastify error handlers are encapsulated — root setErrorHandler alone
+      // does not apply to routes registered via app.register without this.
+      await app.register(
+        async (instance) => {
+          setupErrorHandler(instance);
+          await moduleFunction(instance);
+        },
+        { prefix },
+      );
 
       app.log.info(`✅ Module loaded: ${dir}`);
     }

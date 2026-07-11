@@ -6,13 +6,4 @@ export class UserService {
   async getAllUsers() {
     return this.repo.findAll();
   }
-
-  async createUser(data: {
-    name: string;
-    email: string;
-    password: string;
-    roleId: string;
-  }) {
-    return this.repo.create(data);
-  }
 }

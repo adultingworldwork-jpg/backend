@@ -9,7 +9,8 @@ export class QueueService {
   private getQueue(name: string): Queue {
     if (!this.queues.has(name)) {
       const queue = new Queue(name, {
-        connection: this.redis,
+        // BullMQ embeds its own ioredis types; runtime Redis instance is compatible.
+        connection: this.redis as never,
       });
 
       this.queues.set(name, queue);

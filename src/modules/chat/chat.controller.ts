@@ -1,0 +1,65 @@
+import { FastifyRequest, FastifyReply } from "fastify";
+import { ChatService } from "./chat.service";
+import {
+  ConversationListQuery,
+  CreateConversationInput,
+  MessageListQuery,
+} from "./chat.schema";
+
+export class ChatController {
+  private service(request: FastifyRequest) {
+    return new ChatService({
+      ctx: request.ctx,
+      audit: request.server.audit,
+    });
+  }
+
+  async createConversation(request: FastifyRequest, reply: FastifyReply) {
+    const data = await this.service(request).createConversation(
+      request.body as CreateConversationInput,
+    );
+    return reply.success(data, 201);
+  }
+
+  async listConversations(request: FastifyRequest, reply: FastifyReply) {
+    const data = await this.service(request).listConversations(
+      request.query as ConversationListQuery,
+    );
+    return reply.success(data);
+  }
+
+  async getMessages(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = request.params as { id: string };
+    const data = await this.service(request).getMessages(
+      id,
+      request.query as MessageListQuery,
+    );
+    return reply.success(data);
+  }
+
+  async markRead(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = request.params as { id: string };
+    const service = this.service(request);
+    const data = await service.markRead(id);
+
+    // Realtime notify peer if available
+    if (request.server.realtime) {
+      try {
+        const userId = request.ctx.user!.id;
+        const { otherParticipantId } = await service.validateParticipant(
+          id,
+          userId,
+        );
+        request.server.realtime.emitToUser(otherParticipantId, "chat:read", {
+          conversationId: id,
+          readerId: userId,
+          count: data.count,
+        });
+      } catch {
+        /* ignore emit failures */
+      }
+    }
+
+    return reply.success(data);
+  }
+}

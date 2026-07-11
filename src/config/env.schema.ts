@@ -19,6 +19,15 @@ export const envSchema = z.object({
   REDIS_PORT: z.coerce.number().default(6379),
   REDIS_PASSWORD: z.string().optional(),
   PLUGINS: z.string().default(""),
+
+  /** Comma-separated browser origins allowed by CORS (e.g. http://localhost:3001) */
+  CORS_ORIGIN: z.string().default("http://localhost:3001"),
+
+  /** Cloudinary (required when PLUGINS includes cloudinary) */
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
+  CLOUDINARY_FOLDER: z.string().default("adulting101"),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

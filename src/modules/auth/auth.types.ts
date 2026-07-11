@@ -1,7 +1,7 @@
-import { AuthService } from './auth.service'
+import { AuthService } from "./auth.service";
 
-declare module '@/types/services' {
+declare module "@/types/services" {
   interface BaseServices {
-    auth: AuthService
+    auth: AuthService;
   }
 }

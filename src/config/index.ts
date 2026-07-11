@@ -8,7 +8,12 @@ export const config = {
       prefix: env.API_PREFIX,
       version: env.API_VERSION,
     },
-    plugins: env.PLUGINS.split(",").map((p) => p.trim()).filter((p) => p.length > 0),
+    plugins: env.PLUGINS.split(",")
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0),
+    corsOrigin: env.CORS_ORIGIN.split(",")
+      .map((o) => o.trim())
+      .filter((o) => o.length > 0),
   },
 
   db: {
@@ -23,9 +28,17 @@ export const config = {
   log: {
     level: env.LOG_LEVEL,
   },
+
   redis: {
     host: env.REDIS_HOST,
     port: env.REDIS_PORT,
     password: env.REDIS_PASSWORD,
+  },
+
+  cloudinary: {
+    cloudName: env.CLOUDINARY_CLOUD_NAME,
+    apiKey: env.CLOUDINARY_API_KEY,
+    apiSecret: env.CLOUDINARY_API_SECRET,
+    folder: env.CLOUDINARY_FOLDER,
   },
 };
