@@ -24,7 +24,7 @@ export async function buildApp() {
   await app.register(cors, {
     origin: [
       "http://localhost:3000",
-      "https://your-frontend-domain.vercel.app", // replace with your actual frontend URL
+      "https://audulting101.vercel.app/", 
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
