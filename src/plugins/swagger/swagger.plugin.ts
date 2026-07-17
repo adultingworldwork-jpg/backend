@@ -102,16 +102,12 @@ async function swaggerPlugin(app: FastifyInstance) {
       },
       servers: [
         {
+          url: "https://backend-erd4.onrender.com/",
+          description: "Production",
+        },
+        {
           url: `http://localhost:${port}`,
-          description: "Local development",
-        },
-        {
-          url: "https://api-dev.adulting101.app",
-          description: "Development / staging",
-        },
-        {
-          url: "https://api.adulting101.app",
-          description: "Production (placeholder)",
+          description: "Development",
         },
       ],
       tags: OpenApiTags.map((t) => ({ name: t.name, description: t.description })),
