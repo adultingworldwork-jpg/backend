@@ -3,7 +3,7 @@ import { MESSAGE_TYPES } from "./chat.model";
 
 export const createConversationSchema = z
   .object({
-    participantId: z.string().min(1, "participantId is required"),
+    participantId: z.string().min(1, "participantId is required").describe("Other user id for the 1:1 conversation"),
   })
   .strict();
 
@@ -27,14 +27,13 @@ export const sendMessageBodySchema = z
   );
 
 export const conversationIdParamSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().min(1).describe("Conversation id"),
 });
 
 export const messageListQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).optional().default(1),
-  limit: z.coerce.number().int().min(1).max(100).optional().default(30),
-  /** Optional cursor: ISO createdAt of oldest message already loaded */
-  before: z.string().optional(),
+  page: z.coerce.number().int().min(1).optional().default(1).describe("Page number (default 1)"),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(30).describe("Page size (default 30, max 100)"),
+  before: z.string().optional().describe("Optional cursor: ISO createdAt of oldest message already loaded"),
 });
 
 export const conversationListQuerySchema = z.object({

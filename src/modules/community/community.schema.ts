@@ -10,10 +10,19 @@ export const createCommunityPostSchema = z
       .string()
       .trim()
       .min(1, "Content is required")
-      .max(5000, "Content must be at most 5000 characters"),
-    visibility: z.enum(COMMUNITY_VISIBILITY).optional().default("COMMUNITY"),
-    /** Existing upload document ids — resolved to URL attachments */
-    attachmentUploadIds: z.array(z.string().min(1)).max(5).optional().default([]),
+      .max(5000, "Content must be at most 5000 characters")
+      .describe("Post body (1–5000 characters)"),
+    visibility: z
+      .enum(COMMUNITY_VISIBILITY)
+      .optional()
+      .default("COMMUNITY")
+      .describe("PUBLIC or COMMUNITY (default COMMUNITY)"),
+    attachmentUploadIds: z
+      .array(z.string().min(1))
+      .max(5)
+      .optional()
+      .default([])
+      .describe("Up to 5 existing upload ids resolved to attachment URLs"),
   })
   .strict();
 
@@ -46,12 +55,14 @@ export const updateCommentSchema = z
 
 export const reactionSchema = z
   .object({
-    type: z.enum(REACTION_TYPES),
+    type: z
+      .enum(REACTION_TYPES)
+      .describe("Reaction type: LIKE | SUPPORT | HUG | THANKFUL"),
   })
   .strict();
 
 export const communityIdParamSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().min(1).describe("Community post id"),
 });
 
 export const commentIdParamSchema = z.object({
@@ -59,8 +70,8 @@ export const commentIdParamSchema = z.object({
 });
 
 export const communityListQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).optional().default(1),
-  limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+  page: z.coerce.number().int().min(1).optional().default(1).describe("Page number (default 1)"),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(20).describe("Page size (default 20, max 100)"),
 });
 
 export type CreateCommunityPostInput = z.infer<typeof createCommunityPostSchema>;

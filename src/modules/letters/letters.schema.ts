@@ -7,7 +7,7 @@ import {
 
 export const createLetterSchema = z
   .object({
-    type: z.enum(LETTER_TYPES),
+    type: z.enum(LETTER_TYPES).describe("PRIVATE (requires recipientId) or PUBLIC"),
     title: z
       .string()
       .trim()
@@ -58,12 +58,12 @@ export const updateLetterSchema = z
   });
 
 export const letterIdParamSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().min(1).describe("Letter id"),
 });
 
 export const letterListQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).optional().default(1),
-  limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+  page: z.coerce.number().int().min(1).optional().default(1).describe("Page number (default 1)"),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(20).describe("Page size (default 20, max 100)"),
 });
 
 // status is server-managed; not accepted on create/update body

@@ -47,9 +47,9 @@ export const updateResourceSchema = z
     message: "At least one field is required",
   });
 
-export const resourceIdParamSchema = z.object({ id: z.string().min(1) });
+export const resourceIdParamSchema = z.object({ id: z.string().min(1).describe("Resource id") });
 export const resourceSlugParamSchema = z.object({
-  slug: z.string().min(1).max(100),
+  slug: z.string().min(1).max(100).describe("URL slug"),
 });
 export const resourceCategoryParamSchema = z.object({
   category: z.string().min(1).max(80),
@@ -58,8 +58,8 @@ export const resourceTagParamSchema = z.object({
   tag: z.string().min(1).max(40),
 });
 export const resourceListQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).optional().default(1),
-  limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+  page: z.coerce.number().int().min(1).optional().default(1).describe("Page number (default 1)"),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(20).describe("Page size (default 20, max 100)"),
 });
 
 export type CreateResourceInput = z.infer<typeof createResourceSchema>;

@@ -9,6 +9,7 @@ import servicesPlugin from "./services.plugin";
 import jwtPlugin from "./jwt.plugin";
 import metricsPlugin from "./metrics.plugin";
 import auditPlugin from "./audit/audit.plugin";
+import swaggerPlugin from "./swagger/swagger.plugin";
 
 import redisPlugin from "./redis/redis.plugin";
 import cachePlugin from "./cache/cache.plugin";
@@ -39,6 +40,9 @@ export async function registerPlugins(app: FastifyInstance) {
   // Always-on platform plugins
   await app.register(corsPlugin);
   await app.register(multipartPlugin);
+
+  // OpenAPI / Swagger UI — register before routes so all modules are documented
+  await app.register(swaggerPlugin);
 
   const dbPlugin = await loader();
   await app.register(dbPlugin.default);
