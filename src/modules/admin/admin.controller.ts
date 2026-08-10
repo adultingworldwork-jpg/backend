@@ -1,9 +1,12 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { AdminService } from "./admin.service";
 import {
+  CreateTherapistInput,
   PaginationQuery,
+  UpdateTherapistInput,
   UpdateUserRoleInput,
   UpdateUserStatusInput,
+  VerifyTherapistInput,
 } from "./admin.schema";
 
 export class AdminController {
@@ -105,6 +108,44 @@ export class AdminController {
   async deleteLetter(request: FastifyRequest, reply: FastifyReply) {
     const { id } = request.params as { id: string };
     const data = await this.service(request).deletePublicLetter(id);
+    return reply.success(data);
+  }
+
+  // Therapists
+  async listTherapists(request: FastifyRequest, reply: FastifyReply) {
+    const data = await this.service(request).listTherapists(
+      request.query as PaginationQuery,
+    );
+    return reply.success(data);
+  }
+
+  async createTherapist(request: FastifyRequest, reply: FastifyReply) {
+    const data = await this.service(request).createTherapist(
+      request.body as CreateTherapistInput,
+    );
+    return reply.success(data, 201);
+  }
+
+  async updateTherapist(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = request.params as { id: string };
+    const data = await this.service(request).updateTherapist(
+      id,
+      request.body as UpdateTherapistInput,
+    );
+    return reply.success(data);
+  }
+
+  async deleteTherapist(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = request.params as { id: string };
+    const data = await this.service(request).deleteTherapist(id);
+    return reply.success(data);
+  }
+
+  /** Public therapist PIN gate (no admin JWT) */
+  async verifyTherapist(request: FastifyRequest, reply: FastifyReply) {
+    const data = await this.service(request).verifyTherapist(
+      request.body as VerifyTherapistInput,
+    );
     return reply.success(data);
   }
 

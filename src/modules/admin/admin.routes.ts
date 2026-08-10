@@ -9,10 +9,14 @@ import {
 import {
   commentIdParamSchema,
   contentIdParamSchema,
+  createTherapistSchema,
   paginationQuerySchema,
+  therapistIdParamSchema,
+  updateTherapistSchema,
   updateUserRoleSchema,
   updateUserStatusSchema,
   userIdParamSchema,
+  verifyTherapistSchema,
 } from "./admin.schema";
 import {
   AdminDashboardSchema,
@@ -310,6 +314,116 @@ Paginated **public** letters only.
       preHandler: [adminGuard, validateParams(contentIdParamSchema)],
     },
     c.deleteLetter.bind(c),
+  );
+
+  // Therapists roster (admin CRUD) + public PIN verify for therapist gate
+  app.get(
+    "/therapists",
+    {
+      ...docRoute({
+        tags: ["Admin"],
+        summary: "List therapists",
+        description: `Paginated Safe Space therapist directory for the Admin Panel.`,
+        auth: "admin",
+        querystring: paginationQuerySchema,
+        success: ok200(
+          paginatedSchema({
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              name: { type: "string" },
+              specialty: { type: "string" },
+              code: { type: "string" },
+            },
+          } as any),
+        ),
+      }),
+      preHandler: [adminGuard, validateQuery(paginationQuerySchema)],
+    },
+    c.listTherapists.bind(c),
+  );
+
+  app.post(
+    "/therapists",
+    {
+      ...docRoute({
+        tags: ["Admin"],
+        summary: "Register a therapist",
+        description: `Create a therapist with a unique 4-digit access code.`,
+        auth: "admin",
+        body: createTherapistSchema,
+        bodyExample: {
+          name: "Dr. Avery Chen",
+          specialty: "Emotional Support",
+          code: "4821",
+        },
+        success: ok200({ type: "object" } as any),
+        errors: [409],
+      }),
+      preHandler: [adminGuard, validateBody(createTherapistSchema)],
+    },
+    c.createTherapist.bind(c),
+  );
+
+  app.patch(
+    "/therapists/:id",
+    {
+      ...docRoute({
+        tags: ["Admin"],
+        summary: "Update a therapist",
+        description: `Update therapist profile, access code, or counters.`,
+        auth: "admin",
+        params: therapistIdParamSchema,
+        body: updateTherapistSchema,
+        success: ok200({ type: "object" } as any),
+        errors: [404, 409],
+      }),
+      preHandler: [
+        adminGuard,
+        validateParams(therapistIdParamSchema),
+        validateBody(updateTherapistSchema),
+      ],
+    },
+    c.updateTherapist.bind(c),
+  );
+
+  app.delete(
+    "/therapists/:id",
+    {
+      ...docRoute({
+        tags: ["Admin"],
+        summary: "Delete a therapist",
+        description: `Remove a therapist. Their PIN login stops working immediately.`,
+        auth: "admin",
+        params: therapistIdParamSchema,
+        success: ok200(OkSchema, { ok: true }),
+        errors: [404],
+      }),
+      preHandler: [adminGuard, validateParams(therapistIdParamSchema)],
+    },
+    c.deleteTherapist.bind(c),
+  );
+
+  app.post(
+    "/therapists/verify",
+    {
+      ...docRoute({
+        tags: ["Admin"],
+        summary: "Verify therapist name + access code",
+        description: `
+Therapist gate login (mode select). **Public** — no admin JWT.
+
+Matches name + 4-digit code against the remote therapist roster and updates last login.
+        `.trim(),
+        auth: "public",
+        body: verifyTherapistSchema,
+        bodyExample: { name: "Dr. Avery Chen", code: "4821" },
+        success: ok200({ type: "object" } as any),
+        errors: [401],
+      }),
+      preHandler: [validateBody(verifyTherapistSchema)],
+    },
+    c.verifyTherapist.bind(c),
   );
 
   // Explicit privacy denials (no content ever returned)

@@ -14,10 +14,14 @@ import {
   Message,
 } from "@/modules/chat/chat.model";
 import {
+  CreateTherapistInput,
   PaginationQuery,
+  UpdateTherapistInput,
   UpdateUserRoleInput,
   UpdateUserStatusInput,
+  VerifyTherapistInput,
 } from "./admin.schema";
+import { Therapist } from "./therapist.model";
 
 export type AdminDashboardStats = {
   totalUsers: number;
@@ -381,6 +385,166 @@ export class AdminService {
   denyChatAccess(): never {
     this.requireAdminId();
     throw AppError.fromCode("ADMIN_PRIVACY_VIOLATION");
+  }
+
+  // ── Therapists (admin roster + PIN login) ───────────────
+
+  private normalizeTherapistName(name: string): string {
+    return name.trim().toLowerCase().replace(/\s+/g, " ");
+  }
+
+  private toTherapistDto(doc: any) {
+    const created = doc.createdAt ? new Date(doc.createdAt) : new Date();
+    return {
+      id: String(doc._id),
+      name: doc.name,
+      specialty: doc.specialty || "",
+      code: doc.code,
+      registered: created.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+      repliesCount: doc.repliesCount ?? 0,
+      sessionsAttended: doc.sessionsAttended ?? 0,
+      lastLogin: doc.lastLoginAt
+        ? new Date(doc.lastLoginAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
+        : null,
+      lastLoginAt: doc.lastLoginAt
+        ? new Date(doc.lastLoginAt).toISOString()
+        : null,
+      createdAt: created.toISOString(),
+      updatedAt: doc.updatedAt
+        ? new Date(doc.updatedAt).toISOString()
+        : null,
+    };
+  }
+
+  async listTherapists(query: PaginationQuery) {
+    this.requireAdminId();
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 50;
+    const skip = (page - 1) * limit;
+    const [items, total] = await Promise.all([
+      Therapist.find({})
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Therapist.countDocuments({}),
+    ]);
+    return {
+      items: items.map((t) => this.toTherapistDto(t)),
+      meta: this.meta(total, page, limit),
+    };
+  }
+
+  async createTherapist(input: CreateTherapistInput) {
+    const adminId = this.requireAdminId();
+    const name = input.name.trim();
+    const nameNormalized = this.normalizeTherapistName(name);
+    const code = input.code;
+    const specialty = (input.specialty || "").trim();
+
+    const existingName = await Therapist.findOne({ nameNormalized }).lean();
+    if (existingName) throw AppError.fromCode("THERAPIST_NAME_EXISTS");
+
+    const existingCode = await Therapist.findOne({ code }).lean();
+    if (existingCode) throw AppError.fromCode("THERAPIST_CODE_EXISTS");
+
+    const doc = await Therapist.create({
+      name,
+      nameNormalized,
+      specialty,
+      code,
+      repliesCount: 0,
+      sessionsAttended: 0,
+      lastLoginAt: null,
+      createdBy: adminId,
+    });
+
+    await this.audit("ADMIN_USER_UPDATED", {
+      field: "therapist_created",
+      therapistId: String(doc._id),
+      name,
+    });
+
+    return this.toTherapistDto(doc.toObject ? doc.toObject() : doc);
+  }
+
+  async updateTherapist(id: string, input: UpdateTherapistInput) {
+    this.requireAdminId();
+    const existing = await Therapist.findById(id).lean();
+    if (!existing) throw AppError.fromCode("THERAPIST_NOT_FOUND");
+
+    const patch: Record<string, unknown> = {};
+    if (input.name !== undefined) {
+      const name = input.name.trim();
+      const nameNormalized = this.normalizeTherapistName(name);
+      const clash = await Therapist.findOne({
+        nameNormalized,
+        _id: { $ne: id },
+      }).lean();
+      if (clash) throw AppError.fromCode("THERAPIST_NAME_EXISTS");
+      patch.name = name;
+      patch.nameNormalized = nameNormalized;
+    }
+    if (input.specialty !== undefined) patch.specialty = input.specialty.trim();
+    if (input.code !== undefined) {
+      const clash = await Therapist.findOne({
+        code: input.code,
+        _id: { $ne: id },
+      }).lean();
+      if (clash) throw AppError.fromCode("THERAPIST_CODE_EXISTS");
+      patch.code = input.code;
+    }
+    if (input.repliesCount !== undefined) patch.repliesCount = input.repliesCount;
+    if (input.sessionsAttended !== undefined) {
+      patch.sessionsAttended = input.sessionsAttended;
+    }
+
+    const updated = await Therapist.findByIdAndUpdate(id, patch, {
+      new: true,
+    }).lean();
+    if (!updated) throw AppError.fromCode("THERAPIST_NOT_FOUND");
+    return this.toTherapistDto(updated);
+  }
+
+  async deleteTherapist(id: string): Promise<{ ok: true }> {
+    this.requireAdminId();
+    const existing = await Therapist.findById(id).lean();
+    if (!existing) throw AppError.fromCode("THERAPIST_NOT_FOUND");
+    await Therapist.findByIdAndDelete(id);
+    await this.audit("ADMIN_CONTENT_DELETED", {
+      contentType: "therapist",
+      contentId: id,
+    });
+    return { ok: true };
+  }
+
+  /**
+   * Therapist gate login (name + 4-digit code).
+   * Public — no admin JWT. Updates lastLoginAt on success.
+   */
+  async verifyTherapist(input: VerifyTherapistInput) {
+    const nameNormalized = this.normalizeTherapistName(input.name);
+    const doc = await Therapist.findOne({
+      nameNormalized,
+      code: input.code,
+    }).lean();
+    if (!doc) throw AppError.fromCode("THERAPIST_INVALID_CREDENTIALS");
+
+    const updated = await Therapist.findByIdAndUpdate(
+      doc._id,
+      { lastLoginAt: new Date() },
+      { new: true },
+    ).lean();
+
+    return this.toTherapistDto(updated || doc);
   }
 
   // ── mappers (summaries only — no private body dumps beyond public content) ──

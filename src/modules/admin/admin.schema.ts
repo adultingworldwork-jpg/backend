@@ -47,6 +47,53 @@ export const updateUserRoleSchema = z
   })
   .strict();
 
+export const createTherapistSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80).describe("Therapist full name"),
+    specialty: z
+      .string()
+      .trim()
+      .max(120)
+      .optional()
+      .default("")
+      .describe("Specialty / role (optional)"),
+    code: z
+      .string()
+      .regex(/^\d{4}$/, "Access code must be exactly 4 digits")
+      .describe("4-digit access code"),
+  })
+  .strict();
+
+export const updateTherapistSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80).optional(),
+    specialty: z.string().trim().max(120).optional(),
+    code: z
+      .string()
+      .regex(/^\d{4}$/, "Access code must be exactly 4 digits")
+      .optional(),
+    repliesCount: z.number().int().min(0).optional(),
+    sessionsAttended: z.number().int().min(0).optional(),
+  })
+  .strict();
+
+export const verifyTherapistSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80).describe("Therapist display name"),
+    code: z
+      .string()
+      .regex(/^\d{4}$/, "Access code must be exactly 4 digits")
+      .describe("4-digit access code"),
+  })
+  .strict();
+
+export const therapistIdParamSchema = z.object({
+  id: z.string().min(1).describe("Therapist id"),
+});
+
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
 export type UpdateUserStatusInput = z.infer<typeof updateUserStatusSchema>;
 export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
+export type CreateTherapistInput = z.infer<typeof createTherapistSchema>;
+export type UpdateTherapistInput = z.infer<typeof updateTherapistSchema>;
+export type VerifyTherapistInput = z.infer<typeof verifyTherapistSchema>;

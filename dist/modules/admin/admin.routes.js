@@ -218,6 +218,89 @@ Paginated **public** letters only.
         }),
         preHandler: [auth_guard_1.adminGuard, (0, validation_middleware_1.validateParams)(admin_schema_1.contentIdParamSchema)],
     }, c.deleteLetter.bind(c));
+    // Therapists roster (admin CRUD) + public PIN verify for therapist gate
+    app.get("/therapists", {
+        ...(0, swagger_1.docRoute)({
+            tags: ["Admin"],
+            summary: "List therapists",
+            description: `Paginated Safe Space therapist directory for the Admin Panel.`,
+            auth: "admin",
+            querystring: admin_schema_1.paginationQuerySchema,
+            success: (0, swagger_1.ok200)((0, swagger_1.paginatedSchema)({
+                type: "object",
+                properties: {
+                    id: { type: "string" },
+                    name: { type: "string" },
+                    specialty: { type: "string" },
+                    code: { type: "string" },
+                },
+            })),
+        }),
+        preHandler: [auth_guard_1.adminGuard, (0, validation_middleware_1.validateQuery)(admin_schema_1.paginationQuerySchema)],
+    }, c.listTherapists.bind(c));
+    app.post("/therapists", {
+        ...(0, swagger_1.docRoute)({
+            tags: ["Admin"],
+            summary: "Register a therapist",
+            description: `Create a therapist with a unique 4-digit access code.`,
+            auth: "admin",
+            body: admin_schema_1.createTherapistSchema,
+            bodyExample: {
+                name: "Dr. Avery Chen",
+                specialty: "Emotional Support",
+                code: "4821",
+            },
+            success: (0, swagger_1.ok200)({ type: "object" }),
+            errors: [409],
+        }),
+        preHandler: [auth_guard_1.adminGuard, (0, validation_middleware_1.validateBody)(admin_schema_1.createTherapistSchema)],
+    }, c.createTherapist.bind(c));
+    app.patch("/therapists/:id", {
+        ...(0, swagger_1.docRoute)({
+            tags: ["Admin"],
+            summary: "Update a therapist",
+            description: `Update therapist profile, access code, or counters.`,
+            auth: "admin",
+            params: admin_schema_1.therapistIdParamSchema,
+            body: admin_schema_1.updateTherapistSchema,
+            success: (0, swagger_1.ok200)({ type: "object" }),
+            errors: [404, 409],
+        }),
+        preHandler: [
+            auth_guard_1.adminGuard,
+            (0, validation_middleware_1.validateParams)(admin_schema_1.therapistIdParamSchema),
+            (0, validation_middleware_1.validateBody)(admin_schema_1.updateTherapistSchema),
+        ],
+    }, c.updateTherapist.bind(c));
+    app.delete("/therapists/:id", {
+        ...(0, swagger_1.docRoute)({
+            tags: ["Admin"],
+            summary: "Delete a therapist",
+            description: `Remove a therapist. Their PIN login stops working immediately.`,
+            auth: "admin",
+            params: admin_schema_1.therapistIdParamSchema,
+            success: (0, swagger_1.ok200)(swagger_1.OkSchema, { ok: true }),
+            errors: [404],
+        }),
+        preHandler: [auth_guard_1.adminGuard, (0, validation_middleware_1.validateParams)(admin_schema_1.therapistIdParamSchema)],
+    }, c.deleteTherapist.bind(c));
+    app.post("/therapists/verify", {
+        ...(0, swagger_1.docRoute)({
+            tags: ["Admin"],
+            summary: "Verify therapist name + access code",
+            description: `
+Therapist gate login (mode select). **Public** — no admin JWT.
+
+Matches name + 4-digit code against the remote therapist roster and updates last login.
+        `.trim(),
+            auth: "public",
+            body: admin_schema_1.verifyTherapistSchema,
+            bodyExample: { name: "Dr. Avery Chen", code: "4821" },
+            success: (0, swagger_1.ok200)({ type: "object" }),
+            errors: [401],
+        }),
+        preHandler: [(0, validation_middleware_1.validateBody)(admin_schema_1.verifyTherapistSchema)],
+    }, c.verifyTherapist.bind(c));
     // Explicit privacy denials (no content ever returned)
     const privacyDenySchema = {
         ...(0, swagger_1.docRoute)({

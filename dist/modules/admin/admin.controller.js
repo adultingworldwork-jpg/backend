@@ -73,6 +73,30 @@ class AdminController {
         const data = await this.service(request).deletePublicLetter(id);
         return reply.success(data);
     }
+    // Therapists
+    async listTherapists(request, reply) {
+        const data = await this.service(request).listTherapists(request.query);
+        return reply.success(data);
+    }
+    async createTherapist(request, reply) {
+        const data = await this.service(request).createTherapist(request.body);
+        return reply.success(data, 201);
+    }
+    async updateTherapist(request, reply) {
+        const { id } = request.params;
+        const data = await this.service(request).updateTherapist(id, request.body);
+        return reply.success(data);
+    }
+    async deleteTherapist(request, reply) {
+        const { id } = request.params;
+        const data = await this.service(request).deleteTherapist(id);
+        return reply.success(data);
+    }
+    /** Public therapist PIN gate (no admin JWT) */
+    async verifyTherapist(request, reply) {
+        const data = await this.service(request).verifyTherapist(request.body);
+        return reply.success(data);
+    }
     /** Privacy wall — journals never accessible to admin */
     async denyJournals(request, reply) {
         this.service(request).denyJournalAccess();

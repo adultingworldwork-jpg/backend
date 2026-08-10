@@ -215,6 +215,26 @@ exports.ErrorRegistry = {
         statusCode: 400,
         message: "Invalid user status",
     },
+    THERAPIST_NOT_FOUND: {
+        code: "THERAPIST_NOT_FOUND",
+        statusCode: 404,
+        message: "Therapist not found",
+    },
+    THERAPIST_NAME_EXISTS: {
+        code: "THERAPIST_NAME_EXISTS",
+        statusCode: 409,
+        message: "A therapist with this name already exists",
+    },
+    THERAPIST_CODE_EXISTS: {
+        code: "THERAPIST_CODE_EXISTS",
+        statusCode: 409,
+        message: "This access code is already in use",
+    },
+    THERAPIST_INVALID_CREDENTIALS: {
+        code: "THERAPIST_INVALID_CREDENTIALS",
+        statusCode: 401,
+        message: "Name or passcode is incorrect",
+    },
     ADMIN_INVALID_ROLE: {
         code: "ADMIN_INVALID_ROLE",
         statusCode: 400,
