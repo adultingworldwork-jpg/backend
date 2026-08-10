@@ -3,6 +3,7 @@ import { AuthController } from "./auth.controller";
 import { authGuard } from "@/core/auth.guard";
 import { validateBody } from "@/core/validation.middleware";
 import {
+  adminLoginSchema,
   loginSchema,
   logoutSchema,
   recoverSchema,
@@ -109,6 +110,38 @@ Authenticate with username (case-insensitive) and password.
       preHandler: [validateBody(loginSchema)],
     },
     controller.login.bind(controller),
+  );
+
+  app.post(
+    "/admin-login",
+    {
+      ...docRoute({
+        tags: ["Authentication"],
+        summary: "Admin Panel password-only login",
+        description: `
+Authenticate for the Admin Panel using **password only** (no username field on the UI).
+
+**Who should use it:** Adulting101 Admin Panel single-password gate.
+
+**Business purpose:** Match the password against users with the platform \`admin\` role, then issue the same JWT access + refresh pair as standard login.
+
+**Security:**
+- Password verified with bcrypt against admin accounts only
+- Non-admin passwords never succeed
+- Lockout / suspended status still apply
+- Does **not** bypass \`adminGuard\` on admin routes — JWT still required after login
+        `.trim(),
+        auth: "public",
+        body: adminLoginSchema,
+        bodyExample: {
+          password: "SecureAdminPass123!",
+        },
+        success: ok200(AuthResultSchema),
+        errors: [401, 423],
+      }),
+      preHandler: [validateBody(adminLoginSchema)],
+    },
+    controller.adminLogin.bind(controller),
   );
 
   app.post(

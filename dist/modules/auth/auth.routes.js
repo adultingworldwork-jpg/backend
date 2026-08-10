@@ -87,6 +87,33 @@ Authenticate with username (case-insensitive) and password.
         }),
         preHandler: [(0, validation_middleware_1.validateBody)(auth_schema_1.loginSchema)],
     }, controller.login.bind(controller));
+    app.post("/admin-login", {
+        ...(0, swagger_1.docRoute)({
+            tags: ["Authentication"],
+            summary: "Admin Panel password-only login",
+            description: `
+Authenticate for the Admin Panel using **password only** (no username field on the UI).
+
+**Who should use it:** Adulting101 Admin Panel single-password gate.
+
+**Business purpose:** Match the password against users with the platform \`admin\` role, then issue the same JWT access + refresh pair as standard login.
+
+**Security:**
+- Password verified with bcrypt against admin accounts only
+- Non-admin passwords never succeed
+- Lockout / suspended status still apply
+- Does **not** bypass \`adminGuard\` on admin routes — JWT still required after login
+        `.trim(),
+            auth: "public",
+            body: auth_schema_1.adminLoginSchema,
+            bodyExample: {
+                password: "SecureAdminPass123!",
+            },
+            success: (0, swagger_1.ok200)(swagger_1.AuthResultSchema),
+            errors: [401, 423],
+        }),
+        preHandler: [(0, validation_middleware_1.validateBody)(auth_schema_1.adminLoginSchema)],
+    }, controller.adminLogin.bind(controller));
     app.post("/recover", {
         ...(0, swagger_1.docRoute)({
             tags: ["Authentication"],

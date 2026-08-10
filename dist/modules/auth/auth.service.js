@@ -221,6 +221,85 @@ class AuthService {
         }
         return { user, tokens };
     }
+    /**
+     * Password-only Admin Panel login.
+     * Verifies the password against users with the platform `admin` role
+     * (same bcrypt + lockout rules as standard login). No username field required.
+     */
+    async adminLogin(data) {
+        const admins = await this.repo.findAuthAdminUsers();
+        if (!admins.length) {
+            await this.deps.audit.log({
+                type: "auth.login.failure",
+                ...this.auditBase(),
+                username: "admin",
+                reason: "no_admin_accounts",
+            });
+            throw app_error_1.AppError.invalidCredentials();
+        }
+        let matched = null;
+        let lockedMatch = false;
+        let suspendedMatch = false;
+        for (const userDoc of admins) {
+            const valid = await bcrypt_1.default.compare(data.password, userDoc.passwordHash);
+            if (!valid)
+                continue;
+            if (this.isLocked(userDoc.lockUntil)) {
+                lockedMatch = true;
+                continue;
+            }
+            const accountStatus = userDoc.status || "ACTIVE";
+            if (accountStatus === "SUSPENDED" || accountStatus === "LOCKED") {
+                suspendedMatch = true;
+                continue;
+            }
+            matched = userDoc;
+            break;
+        }
+        if (!matched) {
+            if (lockedMatch || suspendedMatch) {
+                await this.deps.audit.log({
+                    type: "auth.login.failure",
+                    ...this.auditBase(),
+                    username: "admin",
+                    reason: lockedMatch ? "account_locked" : "status_suspended",
+                });
+                throw app_error_1.AppError.accountLocked();
+            }
+            // Record failed attempt against the primary (oldest) admin for lockout parity
+            const primary = admins[0];
+            if (primary) {
+                await this.handleFailedLogin(primary);
+            }
+            await this.deps.audit.log({
+                type: "auth.login.failure",
+                ...this.auditBase(),
+                username: "admin",
+                reason: "bad_password",
+            });
+            throw app_error_1.AppError.invalidCredentials();
+        }
+        await this.repo.clearLockout(String(matched._id));
+        const user = this.toAuthenticatedUser(matched);
+        // Defense in depth: only admin-role users are returned by findAuthAdminUsers
+        if ((user.role || "").toLowerCase() !== "admin") {
+            throw app_error_1.AppError.fromCode("ADMIN_REQUIRED");
+        }
+        const tokens = await this.issueTokenPair(user);
+        await this.deps.audit.log({
+            type: "auth.login.success",
+            ...this.auditBase(),
+            userId: user.id,
+            username: user.username,
+        });
+        await this.deps.audit.log({
+            type: "ADMIN_LOGIN",
+            ...this.auditBase(),
+            userId: user.id,
+            username: user.username,
+        });
+        return { user, tokens };
+    }
     async recover(data) {
         const usernameNormalized = (0, username_1.normalizeUsername)(data.username);
         const userDoc = await this.repo.findAuthByUsernameNormalized(usernameNormalized);

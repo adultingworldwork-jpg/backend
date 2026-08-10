@@ -40,6 +40,17 @@ export const loginSchema = z.object({
     .describe("Account password."),
 });
 
+/**
+ * Admin Panel password-only login (single password field on the UI).
+ * Backend matches the password against platform admin accounts only.
+ */
+export const adminLoginSchema = z.object({
+  password: z
+    .string()
+    .min(1, "Password is required")
+    .describe("Admin Panel password."),
+});
+
 export const recoverSchema = z.object({
   username: z
     .string()
@@ -74,6 +85,7 @@ export const logoutSchema = z.object({
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type AdminLoginInput = z.infer<typeof adminLoginSchema>;
 export type RecoverInput = z.infer<typeof recoverSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
 export type LogoutInput = z.infer<typeof logoutSchema>;

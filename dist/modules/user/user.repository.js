@@ -65,6 +65,21 @@ class UserRepository {
         })
             .lean();
     }
+    /**
+     * Auth-ready users with the platform `admin` role (password hashes included).
+     * Used by password-only Admin Panel login — no username field on the UI.
+     */
+    async findAuthAdminUsers() {
+        const adminRole = await rbac_model_1.Role.findOne({ name: "admin" }).lean();
+        if (!adminRole)
+            return [];
+        return rbac_model_1.User.find({ role: adminRole._id })
+            .populate({
+            path: "role",
+            populate: { path: "permissions", select: "name" },
+        })
+            .lean();
+    }
     async create(data, session) {
         const payload = {
             username: data.username,

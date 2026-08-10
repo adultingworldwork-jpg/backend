@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logoutSchema = exports.refreshSchema = exports.recoverSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.logoutSchema = exports.refreshSchema = exports.recoverSchema = exports.adminLoginSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 const username_1 = require("../../utils/username");
 exports.registerSchema = zod_1.z.object({
@@ -35,6 +35,16 @@ exports.loginSchema = zod_1.z.object({
         .string()
         .min(1, "Password is required")
         .describe("Account password."),
+});
+/**
+ * Admin Panel password-only login (single password field on the UI).
+ * Backend matches the password against platform admin accounts only.
+ */
+exports.adminLoginSchema = zod_1.z.object({
+    password: zod_1.z
+        .string()
+        .min(1, "Password is required")
+        .describe("Admin Panel password."),
 });
 exports.recoverSchema = zod_1.z.object({
     username: zod_1.z

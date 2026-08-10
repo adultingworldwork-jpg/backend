@@ -90,6 +90,21 @@ export class UserRepository {
       .lean();
   }
 
+  /**
+   * Auth-ready users with the platform `admin` role (password hashes included).
+   * Used by password-only Admin Panel login — no username field on the UI.
+   */
+  async findAuthAdminUsers() {
+    const adminRole = await Role.findOne({ name: "admin" }).lean();
+    if (!adminRole) return [];
+    return User.find({ role: adminRole._id })
+      .populate({
+        path: "role",
+        populate: { path: "permissions", select: "name" },
+      })
+      .lean();
+  }
+
   async create(
     data: {
       username: string;

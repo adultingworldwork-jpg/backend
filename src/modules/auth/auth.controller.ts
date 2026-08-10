@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import {
+  AdminLoginInput,
   LoginInput,
   LogoutInput,
   RecoverInput,
@@ -18,6 +19,14 @@ export class AuthController {
   async login(request: FastifyRequest, reply: FastifyReply) {
     const result = await request.services.auth.login(
       request.body as LoginInput,
+    );
+    return reply.success(result);
+  }
+
+  /** Admin Panel password-only login (single password field). */
+  async adminLogin(request: FastifyRequest, reply: FastifyReply) {
+    const result = await request.services.auth.adminLogin(
+      request.body as AdminLoginInput,
     );
     return reply.success(result);
   }

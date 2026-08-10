@@ -10,6 +10,11 @@ class AuthController {
         const result = await request.services.auth.login(request.body);
         return reply.success(result);
     }
+    /** Admin Panel password-only login (single password field). */
+    async adminLogin(request, reply) {
+        const result = await request.services.auth.adminLogin(request.body);
+        return reply.success(result);
+    }
     async recover(request, reply) {
         const result = await request.services.auth.recover(request.body);
         return reply.success(result);
