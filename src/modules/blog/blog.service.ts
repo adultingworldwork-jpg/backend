@@ -68,6 +68,13 @@ export class BlogService {
     return id;
   }
 
+  /** Platform admin (role or admin.access permission) — moderation privileges. */
+  private isAdmin(): boolean {
+    const role = (this.ctx?.user?.role || "").toLowerCase();
+    const permissions = this.ctx?.user?.permissions || [];
+    return role === "admin" || permissions.includes("admin.access");
+  }
+
   async createPost(input: CreateBlogInput): Promise<BlogDto> {
     const authorId = this.requireUserId();
     const tags = normalizeTags(input.tags);
@@ -120,7 +127,8 @@ export class BlogService {
     const userId = this.requireUserId();
     const existing = await this.repo.findById(id);
     if (!existing) throw AppError.fromCode("BLOG_NOT_FOUND");
-    if (existing.authorId !== userId) {
+    // Owner or admin (admin console edits any post against the same remote DB)
+    if (existing.authorId !== userId && !this.isAdmin()) {
       throw AppError.fromCode("BLOG_FORBIDDEN");
     }
 
@@ -195,7 +203,7 @@ export class BlogService {
     const userId = this.requireUserId();
     const existing = await this.repo.findById(id);
     if (!existing) throw AppError.fromCode("BLOG_NOT_FOUND");
-    if (existing.authorId !== userId) {
+    if (existing.authorId !== userId && !this.isAdmin()) {
       throw AppError.fromCode("BLOG_FORBIDDEN");
     }
 
@@ -211,20 +219,21 @@ export class BlogService {
     return { ok: true };
   }
 
-  /** Public slug lookup — drafts only for owner */
+  /** Public slug lookup — drafts for owner or admin only */
   async getPost(slug: string): Promise<BlogDto> {
     const doc = await this.repo.findBySlug(slug);
     if (!doc) throw AppError.fromCode("BLOG_NOT_FOUND");
 
     const viewerId = this.ctx?.user?.id;
     const isOwner = Boolean(viewerId && viewerId === doc.authorId);
+    const admin = this.isAdmin();
 
-    if (doc.status === "DRAFT" && !isOwner) {
-      // Hide existence of drafts from non-owners
+    if (doc.status === "DRAFT" && !isOwner && !admin) {
+      // Hide existence of drafts from non-owners / non-admins
       throw AppError.fromCode("BLOG_NOT_FOUND");
     }
 
-    return this.toDto(doc, isOwner);
+    return this.toDto(doc, isOwner || admin);
   }
 
   async getPublished(query: BlogListQuery): Promise<PaginatedBlogs> {

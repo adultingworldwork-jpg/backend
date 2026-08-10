@@ -305,6 +305,14 @@ class AdminService {
             title: doc.title,
             slug: doc.slug,
             status: doc.status,
+            // Full fields so Admin can edit without a second fetch (same remote DB)
+            excerpt: typeof doc.excerpt === "string" ? doc.excerpt : "",
+            content: typeof doc.content === "string" ? doc.content : "",
+            coverImage: doc.coverImage ?? null,
+            tags: Array.isArray(doc.tags) ? doc.tags : [],
+            publishedAt: doc.publishedAt
+                ? new Date(doc.publishedAt).toISOString()
+                : null,
             createdAt: new Date(doc.createdAt).toISOString(),
             updatedAt: new Date(doc.updatedAt).toISOString(),
         };
@@ -332,6 +340,11 @@ class AdminService {
             category: doc.category,
             status: doc.status,
             featured: !!doc.featured,
+            // Full payload for Admin therapy lists (same remote DB)
+            summary: typeof doc.summary === "string" ? doc.summary : "",
+            content: typeof doc.content === "string" ? doc.content : "",
+            tags: Array.isArray(doc.tags) ? doc.tags : [],
+            coverImage: doc.coverImage ?? null,
             createdAt: new Date(doc.createdAt).toISOString(),
         };
     }
@@ -343,6 +356,8 @@ class AdminService {
             title: doc.title,
             status: doc.status,
             mood: doc.mood,
+            // PUBLIC letters only — body is intentionally public content
+            content: typeof doc.content === "string" ? doc.content : "",
             createdAt: new Date(doc.createdAt).toISOString(),
         };
     }

@@ -46,9 +46,9 @@ exports.updateResourceSchema = zod_1.z
     .refine((v) => Object.keys(v).length > 0, {
     message: "At least one field is required",
 });
-exports.resourceIdParamSchema = zod_1.z.object({ id: zod_1.z.string().min(1) });
+exports.resourceIdParamSchema = zod_1.z.object({ id: zod_1.z.string().min(1).describe("Resource id") });
 exports.resourceSlugParamSchema = zod_1.z.object({
-    slug: zod_1.z.string().min(1).max(100),
+    slug: zod_1.z.string().min(1).max(100).describe("URL slug"),
 });
 exports.resourceCategoryParamSchema = zod_1.z.object({
     category: zod_1.z.string().min(1).max(80),
@@ -57,6 +57,6 @@ exports.resourceTagParamSchema = zod_1.z.object({
     tag: zod_1.z.string().min(1).max(40),
 });
 exports.resourceListQuerySchema = zod_1.z.object({
-    page: zod_1.z.coerce.number().int().min(1).optional().default(1),
-    limit: zod_1.z.coerce.number().int().min(1).max(100).optional().default(20),
+    page: zod_1.z.coerce.number().int().min(1).optional().default(1).describe("Page number (default 1)"),
+    limit: zod_1.z.coerce.number().int().min(1).max(100).optional().default(20).describe("Page size (default 20, max 100)"),
 });

@@ -29,6 +29,12 @@ class BlogService {
             throw app_error_1.AppError.fromCode("UNAUTHORIZED");
         return id;
     }
+    /** Platform admin (role or admin.access permission) — moderation privileges. */
+    isAdmin() {
+        const role = (this.ctx?.user?.role || "").toLowerCase();
+        const permissions = this.ctx?.user?.permissions || [];
+        return role === "admin" || permissions.includes("admin.access");
+    }
     async createPost(input) {
         const authorId = this.requireUserId();
         const tags = (0, slug_1.normalizeTags)(input.tags);
@@ -72,7 +78,8 @@ class BlogService {
         const existing = await this.repo.findById(id);
         if (!existing)
             throw app_error_1.AppError.fromCode("BLOG_NOT_FOUND");
-        if (existing.authorId !== userId) {
+        // Owner or admin (admin console edits any post against the same remote DB)
+        if (existing.authorId !== userId && !this.isAdmin()) {
             throw app_error_1.AppError.fromCode("BLOG_FORBIDDEN");
         }
         const patch = {};
@@ -138,7 +145,7 @@ class BlogService {
         const existing = await this.repo.findById(id);
         if (!existing)
             throw app_error_1.AppError.fromCode("BLOG_NOT_FOUND");
-        if (existing.authorId !== userId) {
+        if (existing.authorId !== userId && !this.isAdmin()) {
             throw app_error_1.AppError.fromCode("BLOG_FORBIDDEN");
         }
         await this.repo.deleteById(id);
@@ -150,18 +157,19 @@ class BlogService {
         });
         return { ok: true };
     }
-    /** Public slug lookup — drafts only for owner */
+    /** Public slug lookup — drafts for owner or admin only */
     async getPost(slug) {
         const doc = await this.repo.findBySlug(slug);
         if (!doc)
             throw app_error_1.AppError.fromCode("BLOG_NOT_FOUND");
         const viewerId = this.ctx?.user?.id;
         const isOwner = Boolean(viewerId && viewerId === doc.authorId);
-        if (doc.status === "DRAFT" && !isOwner) {
-            // Hide existence of drafts from non-owners
+        const admin = this.isAdmin();
+        if (doc.status === "DRAFT" && !isOwner && !admin) {
+            // Hide existence of drafts from non-owners / non-admins
             throw app_error_1.AppError.fromCode("BLOG_NOT_FOUND");
         }
-        return this.toDto(doc, isOwner);
+        return this.toDto(doc, isOwner || admin);
     }
     async getPublished(query) {
         const { page, limit } = query;

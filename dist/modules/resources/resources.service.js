@@ -29,6 +29,12 @@ class ResourcesService {
             throw app_error_1.AppError.fromCode("UNAUTHORIZED");
         return id;
     }
+    /** Platform admin (role or admin.access permission) — moderation privileges. */
+    isAdmin() {
+        const role = (this.ctx?.user?.role || "").toLowerCase();
+        const permissions = this.ctx?.user?.permissions || [];
+        return role === "admin" || permissions.includes("admin.access");
+    }
     async createResource(input) {
         const authorId = this.requireUserId();
         const tags = (0, slug_1.normalizeTags)(input.tags);
@@ -76,7 +82,8 @@ class ResourcesService {
         const existing = await this.repo.findById(id);
         if (!existing)
             throw app_error_1.AppError.fromCode("RESOURCE_NOT_FOUND");
-        if (existing.authorId !== userId) {
+        // Owner or admin (admin console manages any resource in the remote DB)
+        if (existing.authorId !== userId && !this.isAdmin()) {
             throw app_error_1.AppError.fromCode("RESOURCE_FORBIDDEN");
         }
         const patch = {};
@@ -139,7 +146,7 @@ class ResourcesService {
         const existing = await this.repo.findById(id);
         if (!existing)
             throw app_error_1.AppError.fromCode("RESOURCE_NOT_FOUND");
-        if (existing.authorId !== userId) {
+        if (existing.authorId !== userId && !this.isAdmin()) {
             throw app_error_1.AppError.fromCode("RESOURCE_FORBIDDEN");
         }
         await this.repo.deleteById(id);
@@ -177,10 +184,11 @@ class ResourcesService {
             throw app_error_1.AppError.fromCode("RESOURCE_NOT_FOUND");
         const viewerId = this.ctx?.user?.id;
         const isOwner = Boolean(viewerId && viewerId === doc.authorId);
-        if (doc.status === "DRAFT" && !isOwner) {
+        const admin = this.isAdmin();
+        if (doc.status === "DRAFT" && !isOwner && !admin) {
             throw app_error_1.AppError.fromCode("RESOURCE_NOT_FOUND");
         }
-        return this.toDto(doc, isOwner);
+        return this.toDto(doc, isOwner || admin);
     }
     async getMyResources(query) {
         const authorId = this.requireUserId();

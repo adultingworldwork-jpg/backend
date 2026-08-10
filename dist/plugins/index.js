@@ -46,6 +46,7 @@ const services_plugin_1 = __importDefault(require("./services.plugin"));
 const jwt_plugin_1 = __importDefault(require("./jwt.plugin"));
 const metrics_plugin_1 = __importDefault(require("./metrics.plugin"));
 const audit_plugin_1 = __importDefault(require("./audit/audit.plugin"));
+const swagger_plugin_1 = __importDefault(require("./swagger/swagger.plugin"));
 const redis_plugin_1 = __importDefault(require("./redis/redis.plugin"));
 const cache_plugin_1 = __importDefault(require("./cache/cache.plugin"));
 const queue_plugin_1 = __importDefault(require("./queue/queue.plugin"));
@@ -66,6 +67,8 @@ async function registerPlugins(app) {
     // Always-on platform plugins
     await app.register(cors_plugin_1.default);
     await app.register(multipart_plugin_1.default);
+    // OpenAPI / Swagger UI — register before routes so all modules are documented
+    await app.register(swagger_plugin_1.default);
     const dbPlugin = await loader();
     await app.register(dbPlugin.default);
     await app.register(jwt_plugin_1.default);

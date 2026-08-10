@@ -20,7 +20,7 @@ exports.createJournalSchema = zod_1.z
         .string()
         .min(1, "Content is required")
         .max(100000, "Content is too long"),
-    mood: zod_1.z.enum(journal_model_1.JOURNAL_MOODS).optional().default("OTHER"),
+    mood: zod_1.z.enum(journal_model_1.JOURNAL_MOODS).optional().default("OTHER").describe("Mood label for the entry"),
     tags: zod_1.z.array(tagSchema).max(20).optional().default([]),
     attachmentUploadIds: zod_1.z
         .array(zod_1.z.string().min(1))
@@ -42,21 +42,21 @@ exports.updateJournalSchema = zod_1.z
     message: "At least one field is required",
 });
 exports.journalIdParamSchema = zod_1.z.object({
-    id: zod_1.z.string().min(1),
+    id: zod_1.z.string().min(1).describe("Journal entry id"),
 });
 exports.journalListQuerySchema = zod_1.z.object({
-    page: zod_1.z.coerce.number().int().min(1).optional().default(1),
-    limit: zod_1.z.coerce.number().int().min(1).max(100).optional().default(20),
-    mood: zod_1.z.enum(journal_model_1.JOURNAL_MOODS).optional(),
-    tag: zod_1.z.string().trim().min(1).max(40).optional(),
-    /** Inclusive start (ISO date or YYYY-MM-DD) */
+    page: zod_1.z.coerce.number().int().min(1).optional().default(1).describe("Page number (default 1)"),
+    limit: zod_1.z.coerce.number().int().min(1).max(100).optional().default(20).describe("Page size (default 20, max 100)"),
+    mood: zod_1.z.enum(journal_model_1.JOURNAL_MOODS).optional().describe("Filter by mood"),
+    tag: zod_1.z.string().trim().min(1).max(40).optional().describe("Filter by tag"),
     from: zod_1.z
         .string()
         .regex(/^\d{4}-\d{2}-\d{2}/, "from must be YYYY-MM-DD or ISO datetime")
-        .optional(),
-    /** Inclusive end (ISO date or YYYY-MM-DD) */
+        .optional()
+        .describe("Inclusive start date (YYYY-MM-DD or ISO datetime)"),
     to: zod_1.z
         .string()
         .regex(/^\d{4}-\d{2}-\d{2}/, "to must be YYYY-MM-DD or ISO datetime")
-        .optional(),
+        .optional()
+        .describe("Inclusive end date (YYYY-MM-DD or ISO datetime)"),
 });

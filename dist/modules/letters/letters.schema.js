@@ -8,7 +8,7 @@ Object.defineProperty(exports, "LETTER_STATUSES", { enumerable: true, get: funct
 Object.defineProperty(exports, "LETTER_TYPES", { enumerable: true, get: function () { return letters_model_1.LETTER_TYPES; } });
 exports.createLetterSchema = zod_1.z
     .object({
-    type: zod_1.z.enum(letters_model_1.LETTER_TYPES),
+    type: zod_1.z.enum(letters_model_1.LETTER_TYPES).describe("PRIVATE (requires recipientId) or PUBLIC"),
     title: zod_1.z
         .string()
         .trim()
@@ -57,9 +57,9 @@ exports.updateLetterSchema = zod_1.z
     message: "At least one field is required",
 });
 exports.letterIdParamSchema = zod_1.z.object({
-    id: zod_1.z.string().min(1),
+    id: zod_1.z.string().min(1).describe("Letter id"),
 });
 exports.letterListQuerySchema = zod_1.z.object({
-    page: zod_1.z.coerce.number().int().min(1).optional().default(1),
-    limit: zod_1.z.coerce.number().int().min(1).max(100).optional().default(20),
+    page: zod_1.z.coerce.number().int().min(1).optional().default(1).describe("Page number (default 1)"),
+    limit: zod_1.z.coerce.number().int().min(1).max(100).optional().default(20).describe("Page size (default 20, max 100)"),
 });

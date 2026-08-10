@@ -17,8 +17,10 @@ exports.envSchema = zod_1.z.object({
     REDIS_PORT: zod_1.z.coerce.number().default(6379),
     REDIS_PASSWORD: zod_1.z.string().optional(),
     PLUGINS: zod_1.z.string().default(""),
-    /** Comma-separated browser origins allowed by CORS (e.g. http://localhost:3001) */
-    CORS_ORIGIN: zod_1.z.string().default("http://localhost:3001"),
+    /** Comma-separated browser origins allowed by CORS (no trailing slash) */
+    CORS_ORIGIN: zod_1.z
+        .string()
+        .default("http://localhost:3001, http://localhost:3000, https://audulting101.vercel.app"),
     /** Cloudinary (required when PLUGINS includes cloudinary) */
     CLOUDINARY_CLOUD_NAME: zod_1.z.string().optional(),
     CLOUDINARY_API_KEY: zod_1.z.string().optional(),

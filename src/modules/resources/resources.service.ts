@@ -71,6 +71,13 @@ export class ResourcesService {
     return id;
   }
 
+  /** Platform admin (role or admin.access permission) — moderation privileges. */
+  private isAdmin(): boolean {
+    const role = (this.ctx?.user?.role || "").toLowerCase();
+    const permissions = this.ctx?.user?.permissions || [];
+    return role === "admin" || permissions.includes("admin.access");
+  }
+
   async createResource(input: CreateResourceInput): Promise<ResourceDto> {
     const authorId = this.requireUserId();
     const tags = normalizeTags(input.tags);
@@ -129,7 +136,8 @@ export class ResourcesService {
     const userId = this.requireUserId();
     const existing = await this.repo.findById(id);
     if (!existing) throw AppError.fromCode("RESOURCE_NOT_FOUND");
-    if (existing.authorId !== userId) {
+    // Owner or admin (admin console manages any resource in the remote DB)
+    if (existing.authorId !== userId && !this.isAdmin()) {
       throw AppError.fromCode("RESOURCE_FORBIDDEN");
     }
 
@@ -198,7 +206,7 @@ export class ResourcesService {
     const userId = this.requireUserId();
     const existing = await this.repo.findById(id);
     if (!existing) throw AppError.fromCode("RESOURCE_NOT_FOUND");
-    if (existing.authorId !== userId) {
+    if (existing.authorId !== userId && !this.isAdmin()) {
       throw AppError.fromCode("RESOURCE_FORBIDDEN");
     }
 
@@ -258,12 +266,13 @@ export class ResourcesService {
 
     const viewerId = this.ctx?.user?.id;
     const isOwner = Boolean(viewerId && viewerId === doc.authorId);
+    const admin = this.isAdmin();
 
-    if (doc.status === "DRAFT" && !isOwner) {
+    if (doc.status === "DRAFT" && !isOwner && !admin) {
       throw AppError.fromCode("RESOURCE_NOT_FOUND");
     }
 
-    return this.toDto(doc, isOwner);
+    return this.toDto(doc, isOwner || admin);
   }
 
   async getMyResources(query: ResourceListQuery): Promise<PaginatedResources> {
