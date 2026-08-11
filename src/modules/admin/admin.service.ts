@@ -1,3 +1,4 @@
+import bcrypt from "bcrypt";
 import { RequestContext } from "@/types/request-context";
 import { SecurityAuditLogger } from "@/core/interfaces/security-audit";
 import { AppError } from "@/utils/app-error";
@@ -13,6 +14,12 @@ import {
   Conversation,
   Message,
 } from "@/modules/chat/chat.model";
+import { BCRYPT_ROUNDS } from "@/modules/auth/auth.constants";
+import {
+  normalizeRecoveryPassphrase,
+  normalizeUsername,
+  slugifyUsername,
+} from "@/utils/username";
 import {
   CreateTherapistInput,
   PaginationQuery,
@@ -22,6 +29,11 @@ import {
   VerifyTherapistInput,
 } from "./admin.schema";
 import { Therapist } from "./therapist.model";
+
+/** Deterministic password material from 4-digit PIN (min 8 chars for auth rules). */
+export function therapistPasswordFromCode(code: string): string {
+  return `Therapist@${code}`;
+}
 
 export type AdminDashboardStats = {
   totalUsers: number;
@@ -400,6 +412,8 @@ export class AdminService {
       name: doc.name,
       specialty: doc.specialty || "",
       code: doc.code,
+      /** Linked platform user id — required for chat participation */
+      userId: doc.userId ? String(doc.userId) : null,
       registered: created.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
@@ -424,6 +438,88 @@ export class AdminService {
     };
   }
 
+  /**
+   * Ensure a linked User exists for the therapist (role therapist).
+   * Password is derived from the PIN so verify can issue JWT sessions.
+   */
+  private async ensureTherapistUser(doc: {
+    _id: unknown;
+    name: string;
+    code: string;
+    userId?: string | null;
+  }): Promise<string> {
+    if (doc.userId) {
+      const existing = await this.users.findById(String(doc.userId));
+      if (existing) return String(doc.userId);
+    }
+
+    const therapistRole = await this.users.findRoleByName("therapist");
+    if (!therapistRole) {
+      throw AppError.fromCode(
+        "INTERNAL_SERVER_ERROR",
+        'Role "therapist" is missing. Run the seed script.',
+      );
+    }
+
+    // Unique username: therapist_<slug>_<shortId>
+    const baseSlug = slugifyUsername(doc.name) || "therapist";
+    const shortId = String(doc._id).slice(-6);
+    let username = `t_${baseSlug}_${shortId}`.slice(0, 30);
+    let usernameNormalized = normalizeUsername(username);
+    let usernameSlug = slugifyUsername(username);
+
+    // Collision guard (very rare)
+    let attempt = 0;
+    while (await this.users.findByUsernameNormalized(usernameNormalized)) {
+      attempt += 1;
+      username = `t_${baseSlug}_${shortId}${attempt}`.slice(0, 30);
+      usernameNormalized = normalizeUsername(username);
+      usernameSlug = slugifyUsername(username);
+      if (attempt > 20) {
+        throw AppError.fromCode(
+          "INTERNAL_SERVER_ERROR",
+          "Could not allocate therapist username",
+        );
+      }
+    }
+
+    const passwordHash = await bcrypt.hash(
+      therapistPasswordFromCode(doc.code),
+      BCRYPT_ROUNDS,
+    );
+    const recoveryPassphraseHash = await bcrypt.hash(
+      normalizeRecoveryPassphrase(`therapist-recovery-${shortId}`),
+      BCRYPT_ROUNDS,
+    );
+
+    const created = await this.users.create({
+      username,
+      usernameNormalized,
+      usernameSlug,
+      passwordHash,
+      recoveryPassphraseHash,
+      roleId: String(therapistRole._id),
+      acceptedTermsAt: new Date(),
+    });
+    const userId = String(created._id);
+
+    // Profile for display
+    try {
+      const existingProfile = await this.profiles.findByUserId(userId);
+      if (!existingProfile) {
+        await this.profiles.create({
+          userId,
+          displayName: doc.name,
+        });
+      }
+    } catch {
+      /* non-fatal for chat */
+    }
+
+    await Therapist.findByIdAndUpdate(doc._id, { userId });
+    return userId;
+  }
+
   async listTherapists(query: PaginationQuery) {
     this.requireAdminId();
     const page = query.page ?? 1;
@@ -441,6 +537,33 @@ export class AdminService {
       items: items.map((t) => this.toTherapistDto(t)),
       meta: this.meta(total, page, limit),
     };
+  }
+
+  /**
+   * Public roster for user Safe Space matching (no codes, no admin JWT).
+   */
+  async listTherapistsPublic() {
+    const items = await Therapist.find({})
+      .sort({ sessionsAttended: 1, createdAt: 1 })
+      .limit(100)
+      .lean();
+
+    // Ensure linked users for matching (lazy backfill)
+    const out = [];
+    for (const t of items) {
+      try {
+        const userId = await this.ensureTherapistUser(t as any);
+        out.push({
+          id: String(t._id),
+          name: t.name,
+          specialty: t.specialty || "",
+          userId,
+        });
+      } catch {
+        /* skip broken rows */
+      }
+    }
+    return { items: out };
   }
 
   async createTherapist(input: CreateTherapistInput) {
@@ -461,19 +584,25 @@ export class AdminService {
       nameNormalized,
       specialty,
       code,
+      userId: null,
       repliesCount: 0,
       sessionsAttended: 0,
       lastLoginAt: null,
       createdBy: adminId,
     });
 
+    const plain = doc.toObject ? doc.toObject() : doc;
+    const userId = await this.ensureTherapistUser(plain as any);
+
     await this.audit("ADMIN_USER_UPDATED", {
       field: "therapist_created",
       therapistId: String(doc._id),
       name,
+      userId,
     });
 
-    return this.toTherapistDto(doc.toObject ? doc.toObject() : doc);
+    const refreshed = await Therapist.findById(doc._id).lean();
+    return this.toTherapistDto(refreshed || { ...plain, userId });
   }
 
   async updateTherapist(id: string, input: UpdateTherapistInput) {
@@ -511,13 +640,37 @@ export class AdminService {
       new: true,
     }).lean();
     if (!updated) throw AppError.fromCode("THERAPIST_NOT_FOUND");
-    return this.toTherapistDto(updated);
+
+    // Keep linked user password in sync when PIN changes
+    if (input.code !== undefined) {
+      const userId = await this.ensureTherapistUser(updated as any);
+      const passwordHash = await bcrypt.hash(
+        therapistPasswordFromCode(input.code),
+        BCRYPT_ROUNDS,
+      );
+      await this.users.updatePassword(userId, passwordHash);
+    } else if (!updated.userId) {
+      await this.ensureTherapistUser(updated as any);
+    }
+
+    const refreshed = await Therapist.findById(id).lean();
+    return this.toTherapistDto(refreshed || updated);
   }
 
   async deleteTherapist(id: string): Promise<{ ok: true }> {
     this.requireAdminId();
     const existing = await Therapist.findById(id).lean();
     if (!existing) throw AppError.fromCode("THERAPIST_NOT_FOUND");
+
+    // Suspend linked user so JWT sessions fail on next refresh/me
+    if (existing.userId) {
+      try {
+        await this.users.updateStatus(String(existing.userId), "SUSPENDED");
+      } catch {
+        /* best-effort */
+      }
+    }
+
     await Therapist.findByIdAndDelete(id);
     await this.audit("ADMIN_CONTENT_DELETED", {
       contentType: "therapist",
@@ -528,7 +681,8 @@ export class AdminService {
 
   /**
    * Therapist gate login (name + 4-digit code).
-   * Public — no admin JWT. Updates lastLoginAt on success.
+   * Public — no admin JWT.
+   * Returns roster DTO + linked userId (tokens issued by controller via AuthService).
    */
   async verifyTherapist(input: VerifyTherapistInput) {
     const nameNormalized = this.normalizeTherapistName(input.name);
@@ -538,13 +692,18 @@ export class AdminService {
     }).lean();
     if (!doc) throw AppError.fromCode("THERAPIST_INVALID_CREDENTIALS");
 
+    const userId = await this.ensureTherapistUser(doc as any);
+
     const updated = await Therapist.findByIdAndUpdate(
       doc._id,
-      { lastLoginAt: new Date() },
+      { lastLoginAt: new Date(), userId },
       { new: true },
     ).lean();
 
-    return this.toTherapistDto(updated || doc);
+    return {
+      therapist: this.toTherapistDto(updated || { ...doc, userId }),
+      userId,
+    };
   }
 
   // ── mappers (summaries only — no private body dumps beyond public content) ──

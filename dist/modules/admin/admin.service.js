@@ -1,6 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminService = void 0;
+exports.therapistPasswordFromCode = therapistPasswordFromCode;
+const bcrypt_1 = __importDefault(require("bcrypt"));
 const app_error_1 = require("../../utils/app-error");
 const user_repository_1 = require("../../modules/user/user.repository");
 const profile_repository_1 = require("../../modules/profile/profile.repository");
@@ -10,7 +15,13 @@ const journal_repository_1 = require("../../modules/journal/journal.repository")
 const letters_repository_1 = require("../../modules/letters/letters.repository");
 const resources_repository_1 = require("../../modules/resources/resources.repository");
 const chat_model_1 = require("../../modules/chat/chat.model");
+const auth_constants_1 = require("../../modules/auth/auth.constants");
+const username_1 = require("../../utils/username");
 const therapist_model_1 = require("./therapist.model");
+/** Deterministic password material from 4-digit PIN (min 8 chars for auth rules). */
+function therapistPasswordFromCode(code) {
+    return `Therapist@${code}`;
+}
 /**
  * Admin orchestration layer — reuses repositories; does not reimplement domain rules.
  * Privacy: never exposes journals, private letters, or chat message content.
@@ -292,6 +303,8 @@ class AdminService {
             name: doc.name,
             specialty: doc.specialty || "",
             code: doc.code,
+            /** Linked platform user id — required for chat participation */
+            userId: doc.userId ? String(doc.userId) : null,
             registered: created.toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
@@ -315,6 +328,65 @@ class AdminService {
                 : null,
         };
     }
+    /**
+     * Ensure a linked User exists for the therapist (role therapist).
+     * Password is derived from the PIN so verify can issue JWT sessions.
+     */
+    async ensureTherapistUser(doc) {
+        if (doc.userId) {
+            const existing = await this.users.findById(String(doc.userId));
+            if (existing)
+                return String(doc.userId);
+        }
+        const therapistRole = await this.users.findRoleByName("therapist");
+        if (!therapistRole) {
+            throw app_error_1.AppError.fromCode("INTERNAL_SERVER_ERROR", 'Role "therapist" is missing. Run the seed script.');
+        }
+        // Unique username: therapist_<slug>_<shortId>
+        const baseSlug = (0, username_1.slugifyUsername)(doc.name) || "therapist";
+        const shortId = String(doc._id).slice(-6);
+        let username = `t_${baseSlug}_${shortId}`.slice(0, 30);
+        let usernameNormalized = (0, username_1.normalizeUsername)(username);
+        let usernameSlug = (0, username_1.slugifyUsername)(username);
+        // Collision guard (very rare)
+        let attempt = 0;
+        while (await this.users.findByUsernameNormalized(usernameNormalized)) {
+            attempt += 1;
+            username = `t_${baseSlug}_${shortId}${attempt}`.slice(0, 30);
+            usernameNormalized = (0, username_1.normalizeUsername)(username);
+            usernameSlug = (0, username_1.slugifyUsername)(username);
+            if (attempt > 20) {
+                throw app_error_1.AppError.fromCode("INTERNAL_SERVER_ERROR", "Could not allocate therapist username");
+            }
+        }
+        const passwordHash = await bcrypt_1.default.hash(therapistPasswordFromCode(doc.code), auth_constants_1.BCRYPT_ROUNDS);
+        const recoveryPassphraseHash = await bcrypt_1.default.hash((0, username_1.normalizeRecoveryPassphrase)(`therapist-recovery-${shortId}`), auth_constants_1.BCRYPT_ROUNDS);
+        const created = await this.users.create({
+            username,
+            usernameNormalized,
+            usernameSlug,
+            passwordHash,
+            recoveryPassphraseHash,
+            roleId: String(therapistRole._id),
+            acceptedTermsAt: new Date(),
+        });
+        const userId = String(created._id);
+        // Profile for display
+        try {
+            const existingProfile = await this.profiles.findByUserId(userId);
+            if (!existingProfile) {
+                await this.profiles.create({
+                    userId,
+                    displayName: doc.name,
+                });
+            }
+        }
+        catch {
+            /* non-fatal for chat */
+        }
+        await therapist_model_1.Therapist.findByIdAndUpdate(doc._id, { userId });
+        return userId;
+    }
     async listTherapists(query) {
         this.requireAdminId();
         const page = query.page ?? 1;
@@ -333,6 +405,32 @@ class AdminService {
             meta: this.meta(total, page, limit),
         };
     }
+    /**
+     * Public roster for user Safe Space matching (no codes, no admin JWT).
+     */
+    async listTherapistsPublic() {
+        const items = await therapist_model_1.Therapist.find({})
+            .sort({ sessionsAttended: 1, createdAt: 1 })
+            .limit(100)
+            .lean();
+        // Ensure linked users for matching (lazy backfill)
+        const out = [];
+        for (const t of items) {
+            try {
+                const userId = await this.ensureTherapistUser(t);
+                out.push({
+                    id: String(t._id),
+                    name: t.name,
+                    specialty: t.specialty || "",
+                    userId,
+                });
+            }
+            catch {
+                /* skip broken rows */
+            }
+        }
+        return { items: out };
+    }
     async createTherapist(input) {
         const adminId = this.requireAdminId();
         const name = input.name.trim();
@@ -350,17 +448,22 @@ class AdminService {
             nameNormalized,
             specialty,
             code,
+            userId: null,
             repliesCount: 0,
             sessionsAttended: 0,
             lastLoginAt: null,
             createdBy: adminId,
         });
+        const plain = doc.toObject ? doc.toObject() : doc;
+        const userId = await this.ensureTherapistUser(plain);
         await this.audit("ADMIN_USER_UPDATED", {
             field: "therapist_created",
             therapistId: String(doc._id),
             name,
+            userId,
         });
-        return this.toTherapistDto(doc.toObject ? doc.toObject() : doc);
+        const refreshed = await therapist_model_1.Therapist.findById(doc._id).lean();
+        return this.toTherapistDto(refreshed || { ...plain, userId });
     }
     async updateTherapist(id, input) {
         this.requireAdminId();
@@ -401,13 +504,32 @@ class AdminService {
         }).lean();
         if (!updated)
             throw app_error_1.AppError.fromCode("THERAPIST_NOT_FOUND");
-        return this.toTherapistDto(updated);
+        // Keep linked user password in sync when PIN changes
+        if (input.code !== undefined) {
+            const userId = await this.ensureTherapistUser(updated);
+            const passwordHash = await bcrypt_1.default.hash(therapistPasswordFromCode(input.code), auth_constants_1.BCRYPT_ROUNDS);
+            await this.users.updatePassword(userId, passwordHash);
+        }
+        else if (!updated.userId) {
+            await this.ensureTherapistUser(updated);
+        }
+        const refreshed = await therapist_model_1.Therapist.findById(id).lean();
+        return this.toTherapistDto(refreshed || updated);
     }
     async deleteTherapist(id) {
         this.requireAdminId();
         const existing = await therapist_model_1.Therapist.findById(id).lean();
         if (!existing)
             throw app_error_1.AppError.fromCode("THERAPIST_NOT_FOUND");
+        // Suspend linked user so JWT sessions fail on next refresh/me
+        if (existing.userId) {
+            try {
+                await this.users.updateStatus(String(existing.userId), "SUSPENDED");
+            }
+            catch {
+                /* best-effort */
+            }
+        }
         await therapist_model_1.Therapist.findByIdAndDelete(id);
         await this.audit("ADMIN_CONTENT_DELETED", {
             contentType: "therapist",
@@ -417,7 +539,8 @@ class AdminService {
     }
     /**
      * Therapist gate login (name + 4-digit code).
-     * Public — no admin JWT. Updates lastLoginAt on success.
+     * Public — no admin JWT.
+     * Returns roster DTO + linked userId (tokens issued by controller via AuthService).
      */
     async verifyTherapist(input) {
         const nameNormalized = this.normalizeTherapistName(input.name);
@@ -427,8 +550,12 @@ class AdminService {
         }).lean();
         if (!doc)
             throw app_error_1.AppError.fromCode("THERAPIST_INVALID_CREDENTIALS");
-        const updated = await therapist_model_1.Therapist.findByIdAndUpdate(doc._id, { lastLoginAt: new Date() }, { new: true }).lean();
-        return this.toTherapistDto(updated || doc);
+        const userId = await this.ensureTherapistUser(doc);
+        const updated = await therapist_model_1.Therapist.findByIdAndUpdate(doc._id, { lastLoginAt: new Date(), userId }, { new: true }).lean();
+        return {
+            therapist: this.toTherapistDto(updated || { ...doc, userId }),
+            userId,
+        };
     }
     // ── mappers (summaries only — no private body dumps beyond public content) ──
     toUserDto(doc) {

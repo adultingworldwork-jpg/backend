@@ -69,7 +69,8 @@ async function seedRbac() {
     }
     await rbac_model_1.Role.findOneAndUpdate({ name: "admin" }, { name: "admin", permissions: permissionIds }, { upsert: true, new: true });
     await rbac_model_1.Role.findOneAndUpdate({ name: "user" }, { name: "user", permissions: [] }, { upsert: true, new: true });
-    console.log("✅ Seeded roles: admin, user");
+    await rbac_model_1.Role.findOneAndUpdate({ name: "therapist" }, { name: "therapist", permissions: [] }, { upsert: true, new: true });
+    console.log("✅ Seeded roles: admin, user, therapist");
 }
 /**
  * Idempotent default Super Admin seed.

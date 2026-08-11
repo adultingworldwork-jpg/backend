@@ -35,6 +35,26 @@ Create a conversation with another user (or return the existing pair).
         }),
         preHandler: [auth_guard_1.authGuard, (0, validation_middleware_1.validateBody)(chat_schema_1.createConversationSchema)],
     }, c.createConversation.bind(c));
+    app.post("/support-session", {
+        ...(0, swagger_1.docRoute)({
+            tags: ["Chat"],
+            summary: "Start or resume a Safe Space support session",
+            description: `
+Assigns (or resumes) a 1:1 conversation between the authenticated user and a therapist.
+
+If \`therapistUserId\` is omitted, the least-loaded therapist with a linked User is chosen.
+        `.trim(),
+            auth: "bearer",
+            body: chat_schema_1.startSupportSessionSchema,
+            bodyExample: {
+                category: "Emotional Support",
+                clientLabel: "Moonflower",
+            },
+            success: (0, swagger_1.created201)(swagger_1.ConversationDtoSchema),
+            errors: [400, 404],
+        }),
+        preHandler: [auth_guard_1.authGuard, (0, validation_middleware_1.validateBody)(chat_schema_1.startSupportSessionSchema)],
+    }, c.startSupportSession.bind(c));
     app.get("/conversations", {
         ...(0, swagger_1.docRoute)({
             tags: ["Chat"],
@@ -43,6 +63,7 @@ Create a conversation with another user (or return the existing pair).
 Paginated conversations for the authenticated user (most recently active first).
 
 Each item includes \`otherParticipantId\` relative to the viewer.
+Admins receive all platform conversations for operational inbox.
         `.trim(),
             auth: "bearer",
             querystring: chat_schema_1.conversationListQuerySchema,
@@ -50,6 +71,25 @@ Each item includes \`otherParticipantId\` relative to the viewer.
         }),
         preHandler: [auth_guard_1.authGuard, (0, validation_middleware_1.validateQuery)(chat_schema_1.conversationListQuerySchema)],
     }, c.listConversations.bind(c));
+    app.patch("/conversations/:id", {
+        ...(0, swagger_1.docRoute)({
+            tags: ["Chat"],
+            summary: "Update conversation metadata (status/category)",
+            description: `
+Participants (or admin) may end/reopen a support session and update labels.
+        `.trim(),
+            auth: "bearer",
+            params: chat_schema_1.conversationIdParamSchema,
+            body: chat_schema_1.updateConversationSchema,
+            success: (0, swagger_1.ok200)(swagger_1.ConversationDtoSchema),
+            errors: [403, 404],
+        }),
+        preHandler: [
+            auth_guard_1.authGuard,
+            (0, validation_middleware_1.validateParams)(chat_schema_1.conversationIdParamSchema),
+            (0, validation_middleware_1.validateBody)(chat_schema_1.updateConversationSchema),
+        ],
+    }, c.updateConversation.bind(c));
     app.get("/conversations/:id/messages", {
         ...(0, swagger_1.docRoute)({
             tags: ["Chat"],

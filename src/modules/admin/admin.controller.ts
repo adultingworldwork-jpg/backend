@@ -141,11 +141,28 @@ export class AdminController {
     return reply.success(data);
   }
 
-  /** Public therapist PIN gate (no admin JWT) */
+  /**
+   * Public therapist PIN gate (no admin JWT).
+   * On success issues a full JWT session for the linked therapist User
+   * so Socket.IO + chat APIs work as a real participant.
+   */
   async verifyTherapist(request: FastifyRequest, reply: FastifyReply) {
-    const data = await this.service(request).verifyTherapist(
+    const verified = await this.service(request).verifyTherapist(
       request.body as VerifyTherapistInput,
     );
+    const session = await request.services.auth.issueSessionForUserId(
+      verified.userId,
+    );
+    return reply.success({
+      therapist: verified.therapist,
+      user: session.user,
+      tokens: session.tokens,
+    });
+  }
+
+  /** Public roster for Safe Space matching (no PINs). */
+  async listTherapistsPublic(request: FastifyRequest, reply: FastifyReply) {
+    const data = await this.service(request).listTherapistsPublic();
     return reply.success(data);
   }
 

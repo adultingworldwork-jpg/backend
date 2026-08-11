@@ -4,6 +4,8 @@ import {
   ConversationListQuery,
   CreateConversationInput,
   MessageListQuery,
+  StartSupportSessionInput,
+  UpdateConversationInput,
 } from "./chat.schema";
 
 export class ChatController {
@@ -21,9 +23,25 @@ export class ChatController {
     return reply.success(data, 201);
   }
 
+  async startSupportSession(request: FastifyRequest, reply: FastifyReply) {
+    const data = await this.service(request).startSupportSession(
+      request.body as StartSupportSessionInput,
+    );
+    return reply.success(data, 201);
+  }
+
   async listConversations(request: FastifyRequest, reply: FastifyReply) {
     const data = await this.service(request).listConversations(
       request.query as ConversationListQuery,
+    );
+    return reply.success(data);
+  }
+
+  async updateConversation(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = request.params as { id: string };
+    const data = await this.service(request).updateConversation(
+      id,
+      request.body as UpdateConversationInput,
     );
     return reply.success(data);
   }

@@ -11,9 +11,15 @@ const attachmentSchema = new mongoose.Schema(
   { _id: false },
 );
 
+export const CONVERSATION_STATUSES = ["active", "ended"] as const;
+export type ConversationStatus = (typeof CONVERSATION_STATUSES)[number];
+
 /**
  * One conversation per unique pair of users.
  * participantA / participantB are ordered lexicographically (A < B).
+ *
+ * Safe Space support sessions add optional metadata (category/status/labels)
+ * so therapist/admin inboxes can filter without a second data store.
  */
 const conversationSchema = new mongoose.Schema(
   {
@@ -21,6 +27,21 @@ const conversationSchema = new mongoose.Schema(
     participantB: { type: String, required: true, index: true },
     lastMessageId: { type: String, default: null },
     lastMessageAt: { type: Date, default: null, index: true },
+    /** Support-session category (e.g. Emotional Support) */
+    category: { type: String, default: null, trim: true },
+    /** active | ended — therapists only see active by default in UI */
+    status: {
+      type: String,
+      enum: CONVERSATION_STATUSES,
+      default: "active",
+      index: true,
+    },
+    /** User-facing display name chosen at chat start (not the account username) */
+    clientLabel: { type: String, default: null, trim: true },
+    /** Therapist roster id when session was assigned (optional) */
+    assignedTherapistId: { type: String, default: null, index: true },
+    /** Therapist display name for inbox UI */
+    assignedTherapistName: { type: String, default: null, trim: true },
   },
   { timestamps: true },
 );

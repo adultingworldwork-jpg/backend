@@ -413,7 +413,9 @@ Paginated **public** letters only.
         description: `
 Therapist gate login (mode select). **Public** — no admin JWT.
 
-Matches name + 4-digit code against the remote therapist roster and updates last login.
+Matches name + 4-digit code against the remote therapist roster, ensures a linked
+User account (role therapist), updates last login, and returns JWT tokens so the
+therapist can use Chat + Socket.IO as a real participant.
         `.trim(),
         auth: "public",
         body: verifyTherapistSchema,
@@ -424,6 +426,23 @@ Matches name + 4-digit code against the remote therapist roster and updates last
       preHandler: [validateBody(verifyTherapistSchema)],
     },
     c.verifyTherapist.bind(c),
+  );
+
+  app.get(
+    "/therapists/public",
+    {
+      ...docRoute({
+        tags: ["Admin"],
+        summary: "Public therapist roster (Safe Space matching)",
+        description: `
+Public list of therapists for user Safe Space session matching.
+Does **not** expose access codes. Includes \`userId\` for conversation creation.
+        `.trim(),
+        auth: "public",
+        success: ok200({ type: "object" } as any),
+      }),
+    },
+    c.listTherapistsPublic.bind(c),
   );
 
   // Explicit privacy denials (no content ever returned)

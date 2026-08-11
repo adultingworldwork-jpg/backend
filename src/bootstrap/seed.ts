@@ -80,7 +80,13 @@ export async function seedRbac(): Promise<void> {
     { upsert: true, new: true },
   );
 
-  console.log("✅ Seeded roles: admin, user");
+  await Role.findOneAndUpdate(
+    { name: "therapist" },
+    { name: "therapist", permissions: [] },
+    { upsert: true, new: true },
+  );
+
+  console.log("✅ Seeded roles: admin, user, therapist");
 }
 
 export type SeedDefaultAdminResult =

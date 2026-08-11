@@ -1,5 +1,6 @@
 import {
   Conversation,
+  ConversationStatus,
   Message,
   MessageType,
   orderParticipants,
@@ -7,19 +8,36 @@ import {
 
 export type ChatAttachment = { uploadId?: string; url: string };
 
+export type ConversationMetaInput = {
+  category?: string | null;
+  status?: ConversationStatus;
+  clientLabel?: string | null;
+  assignedTherapistId?: string | null;
+  assignedTherapistName?: string | null;
+};
+
 export class ChatRepository {
   async findConversationByPair(userId1: string, userId2: string) {
     const { participantA, participantB } = orderParticipants(userId1, userId2);
     return Conversation.findOne({ participantA, participantB }).lean();
   }
 
-  async createConversation(userId1: string, userId2: string) {
+  async createConversation(
+    userId1: string,
+    userId2: string,
+    meta?: ConversationMetaInput,
+  ) {
     const { participantA, participantB } = orderParticipants(userId1, userId2);
     return Conversation.create({
       participantA,
       participantB,
       lastMessageId: null,
       lastMessageAt: null,
+      category: meta?.category ?? null,
+      status: meta?.status ?? "active",
+      clientLabel: meta?.clientLabel ?? null,
+      assignedTherapistId: meta?.assignedTherapistId ?? null,
+      assignedTherapistName: meta?.assignedTherapistName ?? null,
     });
   }
 
@@ -27,10 +45,18 @@ export class ChatRepository {
     return Conversation.findById(id).lean();
   }
 
-  async listConversationsForUser(userId: string, page: number, limit: number) {
-    const filter = {
+  async listConversationsForUser(
+    userId: string,
+    page: number,
+    limit: number,
+    status?: ConversationStatus | "all",
+  ) {
+    const filter: Record<string, unknown> = {
       $or: [{ participantA: userId }, { participantB: userId }],
     };
+    if (status && status !== "all") {
+      filter.status = status;
+    }
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
       Conversation.find(filter)
@@ -41,6 +67,49 @@ export class ChatRepository {
       Conversation.countDocuments(filter),
     ]);
     return { items, total, page, limit };
+  }
+
+  /** Staff/admin: list all support conversations (metadata for inbox). */
+  async listAllConversations(
+    page: number,
+    limit: number,
+    status?: ConversationStatus | "all",
+  ) {
+    const filter: Record<string, unknown> = {};
+    if (status && status !== "all") {
+      filter.status = status;
+    }
+    const skip = (page - 1) * limit;
+    const [items, total] = await Promise.all([
+      Conversation.find(filter)
+        .sort({ lastMessageAt: -1, updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Conversation.countDocuments(filter),
+    ]);
+    return { items, total, page, limit };
+  }
+
+  async updateConversationMeta(
+    conversationId: string,
+    patch: ConversationMetaInput,
+  ) {
+    const $set: Record<string, unknown> = {};
+    if (patch.category !== undefined) $set.category = patch.category;
+    if (patch.status !== undefined) $set.status = patch.status;
+    if (patch.clientLabel !== undefined) $set.clientLabel = patch.clientLabel;
+    if (patch.assignedTherapistId !== undefined) {
+      $set.assignedTherapistId = patch.assignedTherapistId;
+    }
+    if (patch.assignedTherapistName !== undefined) {
+      $set.assignedTherapistName = patch.assignedTherapistName;
+    }
+    return Conversation.findByIdAndUpdate(
+      conversationId,
+      { $set },
+      { new: true },
+    ).lean();
   }
 
   async updateConversationLastMessage(
@@ -58,6 +127,16 @@ export class ChatRepository {
       },
       { new: true },
     ).lean();
+  }
+
+  async findLatestMessage(conversationId: string) {
+    return Message.findOne({ conversationId })
+      .sort({ createdAt: -1 })
+      .lean();
+  }
+
+  async countMessages(conversationId: string) {
+    return Message.countDocuments({ conversationId });
   }
 
   async createMessage(data: {

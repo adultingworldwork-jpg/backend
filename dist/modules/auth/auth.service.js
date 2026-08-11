@@ -423,6 +423,35 @@ class AuthService {
         }
         return this.toAuthenticatedUser(userDoc);
     }
+    /**
+     * Issue a fresh access + refresh pair for an existing user id.
+     * Used by therapist PIN verify (linked User) after credential check.
+     */
+    async issueSessionForUserId(userId) {
+        const userDoc = await this.repo.findAuthById(userId);
+        if (!userDoc) {
+            throw app_error_1.AppError.fromCode("USER_NOT_FOUND");
+        }
+        const accountStatus = userDoc.status || "ACTIVE";
+        if (accountStatus === "SUSPENDED" || accountStatus === "LOCKED") {
+            throw app_error_1.AppError.fromCode("ACCOUNT_LOCKED", accountStatus === "SUSPENDED"
+                ? "Account is suspended"
+                : "Account is locked");
+        }
+        if (this.isLocked(userDoc.lockUntil)) {
+            throw app_error_1.AppError.accountLocked();
+        }
+        const user = this.toAuthenticatedUser(userDoc);
+        const tokens = await this.issueTokenPair(user);
+        await this.deps.audit.log({
+            type: "auth.login.success",
+            ...this.auditBase(),
+            userId: user.id,
+            username: user.username,
+            metadata: { via: "therapist_verify" },
+        });
+        return { user, tokens };
+    }
     async issueTokenPair(user, previousHash = null) {
         const payload = {
             id: user.id,

@@ -7,6 +7,35 @@ export const createConversationSchema = z
   })
   .strict();
 
+/** User Safe Space: create/resume a support conversation with an assigned therapist */
+export const startSupportSessionSchema = z
+  .object({
+    category: z
+      .string()
+      .trim()
+      .max(80)
+      .optional()
+      .default("Something Else")
+      .describe("Support category chosen by the user"),
+    clientLabel: z
+      .string()
+      .trim()
+      .max(80)
+      .optional()
+      .describe("Display name for the session (defaults to username)"),
+    /** Optional: pin to a specific therapist platform user id */
+    therapistUserId: z.string().min(1).optional(),
+  })
+  .strict();
+
+export const updateConversationSchema = z
+  .object({
+    status: z.enum(["active", "ended"]).optional(),
+    category: z.string().trim().max(80).optional(),
+    clientLabel: z.string().trim().max(80).optional(),
+  })
+  .strict();
+
 export const sendMessageBodySchema = z
   .object({
     type: z.enum(MESSAGE_TYPES).optional().default("TEXT"),
@@ -39,9 +68,16 @@ export const messageListQuerySchema = z.object({
 export const conversationListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+  status: z
+    .enum(["active", "ended", "all"])
+    .optional()
+    .default("all")
+    .describe("Filter by conversation status"),
 });
 
 export type CreateConversationInput = z.infer<typeof createConversationSchema>;
+export type StartSupportSessionInput = z.infer<typeof startSupportSessionSchema>;
+export type UpdateConversationInput = z.infer<typeof updateConversationSchema>;
 export type SendMessageInput = z.infer<typeof sendMessageBodySchema>;
 export type MessageListQuery = z.infer<typeof messageListQuerySchema>;
 export type ConversationListQuery = z.infer<typeof conversationListQuerySchema>;

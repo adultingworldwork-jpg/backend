@@ -13,8 +13,17 @@ class ChatController {
         const data = await this.service(request).createConversation(request.body);
         return reply.success(data, 201);
     }
+    async startSupportSession(request, reply) {
+        const data = await this.service(request).startSupportSession(request.body);
+        return reply.success(data, 201);
+    }
     async listConversations(request, reply) {
         const data = await this.service(request).listConversations(request.query);
+        return reply.success(data);
+    }
+    async updateConversation(request, reply) {
+        const { id } = request.params;
+        const data = await this.service(request).updateConversation(id, request.body);
         return reply.success(data);
     }
     async getMessages(request, reply) {
