@@ -10,9 +10,16 @@ import {
 
 export class ChatController {
   private service(request: FastifyRequest) {
+    const presence =
+      (request.server as any).socketPresence ||
+      (request.server as any).presence ||
+      null;
     return new ChatService({
       ctx: request.ctx,
       audit: request.server.audit,
+      isTherapistOnline: presence?.isOnline
+        ? (userId: string) => presence.isOnline(userId)
+        : undefined,
     });
   }
 
@@ -27,6 +34,33 @@ export class ChatController {
     const data = await this.service(request).startSupportSession(
       request.body as StartSupportSessionInput,
     );
+
+    // Notify assigned therapist immediately (user room) so inbox updates without refresh
+    if (request.server.realtime && data?.otherParticipantId) {
+      try {
+        const therapistUserId = data.otherParticipantId;
+        const userId = request.ctx.user?.id;
+        // otherParticipantId is relative to the requesting user → therapist user id
+        if (therapistUserId && therapistUserId !== userId) {
+          request.server.realtime.emitToUser(therapistUserId, "chat:conversation", {
+            conversation: data,
+            reason: "assigned",
+          });
+          request.log.info(
+            {
+              conversationId: data.id,
+              therapistUserId,
+              userId,
+              assignedTherapistName: data.assignedTherapistName,
+            },
+            "chat.support_session.assigned",
+          );
+        }
+      } catch {
+        /* non-fatal */
+      }
+    }
+
     return reply.success(data, 201);
   }
 

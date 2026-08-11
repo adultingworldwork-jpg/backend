@@ -81,6 +81,32 @@ function registerChatSocketHandlers(app) {
                 app.realtime.emitToConversation(conversationId, "chat:message", {
                     message,
                 });
+                // If peer is not in the conversation room, deliver to their user room
+                // so the inbox/list still updates (and open chat tabs still receive).
+                // When peer is already in the room, skip to avoid duplicate renders.
+                try {
+                    const { otherParticipantId } = await service.validateParticipant(conversationId, user.id);
+                    if (otherParticipantId) {
+                        if (!peerOnline) {
+                            app.realtime.emitToUser(otherParticipantId, "chat:message", {
+                                message,
+                            });
+                        }
+                        // Always emit lightweight inbox signal for list reordering/preview
+                        app.realtime.emitToUser(otherParticipantId, "chat:conversation", {
+                            conversation: {
+                                id: conversationId,
+                                lastMessageId: message.id,
+                                lastMessageAt: message.createdAt,
+                                lastMessagePreview: (message.content || "").slice(0, 120),
+                            },
+                            reason: "message",
+                        });
+                    }
+                }
+                catch {
+                    /* non-fatal */
+                }
                 if (peerOnline) {
                     app.realtime.emitToConversation(conversationId, "chat:delivered", {
                         conversationId,

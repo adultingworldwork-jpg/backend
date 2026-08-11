@@ -24,13 +24,32 @@ class ChatRepository {
     async findConversationById(id) {
         return chat_model_1.Conversation.findById(id).lean();
     }
-    async listConversationsForUser(userId, page, limit, status) {
-        const filter = {
-            $or: [{ participantA: userId }, { participantB: userId }],
-        };
-        if (status && status !== "all") {
-            filter.status = status;
+    /**
+     * Status filter: "active" includes missing/null status (legacy docs default to active).
+     * "ended" is exact match only.
+     */
+    statusClause(status) {
+        if (!status || status === "all")
+            return null;
+        if (status === "active") {
+            return {
+                $or: [
+                    { status: "active" },
+                    { status: null },
+                    { status: { $exists: false } },
+                ],
+            };
         }
+        return { status };
+    }
+    async listConversationsForUser(userId, page, limit, status) {
+        const parts = [
+            { $or: [{ participantA: userId }, { participantB: userId }] },
+        ];
+        const sc = this.statusClause(status);
+        if (sc)
+            parts.push(sc);
+        const filter = parts.length === 1 ? parts[0] : { $and: parts };
         const skip = (page - 1) * limit;
         const [items, total] = await Promise.all([
             chat_model_1.Conversation.find(filter)
@@ -44,10 +63,8 @@ class ChatRepository {
     }
     /** Staff/admin: list all support conversations (metadata for inbox). */
     async listAllConversations(page, limit, status) {
-        const filter = {};
-        if (status && status !== "all") {
-            filter.status = status;
-        }
+        const sc = this.statusClause(status);
+        const filter = sc || {};
         const skip = (page - 1) * limit;
         const [items, total] = await Promise.all([
             chat_model_1.Conversation.find(filter)

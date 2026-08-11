@@ -45,18 +45,36 @@ export class ChatRepository {
     return Conversation.findById(id).lean();
   }
 
+  /**
+   * Status filter: "active" includes missing/null status (legacy docs default to active).
+   * "ended" is exact match only.
+   */
+  private statusClause(status?: ConversationStatus | "all") {
+    if (!status || status === "all") return null;
+    if (status === "active") {
+      return {
+        $or: [
+          { status: "active" },
+          { status: null },
+          { status: { $exists: false } },
+        ],
+      };
+    }
+    return { status };
+  }
+
   async listConversationsForUser(
     userId: string,
     page: number,
     limit: number,
     status?: ConversationStatus | "all",
   ) {
-    const filter: Record<string, unknown> = {
-      $or: [{ participantA: userId }, { participantB: userId }],
-    };
-    if (status && status !== "all") {
-      filter.status = status;
-    }
+    const parts: Record<string, unknown>[] = [
+      { $or: [{ participantA: userId }, { participantB: userId }] },
+    ];
+    const sc = this.statusClause(status);
+    if (sc) parts.push(sc);
+    const filter = parts.length === 1 ? parts[0] : { $and: parts };
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
       Conversation.find(filter)
@@ -75,10 +93,8 @@ export class ChatRepository {
     limit: number,
     status?: ConversationStatus | "all",
   ) {
-    const filter: Record<string, unknown> = {};
-    if (status && status !== "all") {
-      filter.status = status;
-    }
+    const sc = this.statusClause(status);
+    const filter = sc || {};
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
       Conversation.find(filter)

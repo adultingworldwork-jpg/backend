@@ -45,6 +45,14 @@ export default fp(
       return memoryPresence;
     };
 
+    // Expose the same presence backend sockets use so chat assignment can
+    // prefer currently connected therapists (Redis or in-memory).
+    if (!(app as any).socketPresence) {
+      app.decorate("socketPresence", {
+        isOnline: (userId: string) => getPresence().isOnline(userId),
+      });
+    }
+
     // Auth middleware — access token from handshake.auth.token
     io.use(async (socket: any, next) => {
       try {

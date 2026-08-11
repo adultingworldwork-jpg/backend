@@ -152,22 +152,60 @@ class ChatService {
             }
         }
         else {
-            // Ensure roster rows have linked Users (lazy backfill via AdminService)
+            // Auto-assign: linked User required.
+            // Availability order:
+            //   1) Socket-online therapists (actively connected)
+            //   2) Recently logged-in (lastLoginAt)
+            //   3) Least sessions attended (load balance)
             const { AdminService } = await Promise.resolve().then(() => __importStar(require("../../modules/admin/admin.service")));
             const adminSvc = new AdminService({
                 ctx: this.ctx,
                 audit: this.deps.audit,
             });
-            const publicList = await adminSvc.listTherapistsPublic();
-            const pick = (publicList.items || [])[0];
+            // Ensures userId links exist for all roster rows
+            await adminSvc.listTherapistsPublic();
+            const roster = await therapist_model_1.Therapist.find({
+                userId: { $ne: null, $exists: true },
+            })
+                .sort({
+                lastLoginAt: -1,
+                sessionsAttended: 1,
+                createdAt: 1,
+            })
+                .limit(50)
+                .lean();
+            if (!roster.length) {
+                throw app_error_1.AppError.fromCode("VALIDATION_ERROR", "No therapists available. Please try again later.");
+            }
+            let pick = roster[0];
+            const onlineChecker = this.deps.isTherapistOnline;
+            if (onlineChecker) {
+                const online = [];
+                for (const t of roster) {
+                    try {
+                        if (t.userId && (await onlineChecker(String(t.userId)))) {
+                            online.push(t);
+                        }
+                    }
+                    catch {
+                        /* ignore presence errors */
+                    }
+                }
+                if (online.length) {
+                    // Among online, least sessions first
+                    online.sort((a, b) => (a.sessionsAttended ?? 0) - (b.sessionsAttended ?? 0));
+                    pick = online[0];
+                }
+            }
             if (!pick?.userId) {
                 throw app_error_1.AppError.fromCode("VALIDATION_ERROR", "No therapists available. Please try again later.");
             }
-            therapistUserId = pick.userId;
+            therapistUserId = String(pick.userId);
             therapistRoster = {
-                _id: pick.id,
+                _id: pick._id,
                 name: pick.name,
-                userId: pick.userId,
+                userId: String(pick.userId),
+                sessionsAttended: pick.sessionsAttended ?? 0,
             };
         }
         if (therapistUserId === userId) {

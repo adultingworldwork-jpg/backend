@@ -33,6 +33,13 @@ exports.default = (0, fastify_plugin_1.default)(async (app) => {
             return app.presence;
         return memoryPresence;
     };
+    // Expose the same presence backend sockets use so chat assignment can
+    // prefer currently connected therapists (Redis or in-memory).
+    if (!app.socketPresence) {
+        app.decorate("socketPresence", {
+            isOnline: (userId) => getPresence().isOnline(userId),
+        });
+    }
     // Auth middleware — access token from handshake.auth.token
     io.use(async (socket, next) => {
         try {
