@@ -21,7 +21,7 @@ import {
 export const DEFAULT_SUPER_ADMIN = {
   /** Login username (shown as Email in console for convenience). */
   email: "admin@test.com",
-  password: "Admin@123",
+  password: "admin@1234",
   name: "System Administrator",
   /** Recovery passphrase required by User schema (not printed). */
   recoveryPassphrase: "default-dev-recovery-passphrase",

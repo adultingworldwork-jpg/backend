@@ -1,5 +1,5 @@
-/** Failed login attempts before lockout */
-export const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+/** Failed login attempts before lockout. Raised for local testing. */
+export const MAX_FAILED_LOGIN_ATTEMPTS = 100;
 
 /** Lock duration after max failed attempts */
 export const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
